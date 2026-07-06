@@ -46,7 +46,7 @@ export type FieldDef =
   | {
       key: string;
       label: string;
-      type: "text" | "email" | "number" | "date";
+      type: "text" | "email" | "number" | "date" | "password";
       required?: boolean;
       placeholder?: string;
     }
@@ -83,6 +83,8 @@ interface ResourcePageProps<T> {
   loadingCreate?: boolean;
   loadingUpdate?: boolean;
   loadingDelete?: boolean;
+  transformCreate?: (data: Partial<T>) => Partial<T>;
+  transformUpdate?: (data: Partial<T>) => Partial<T>;
 }
 
 export function ResourcePage<T>({
@@ -102,6 +104,8 @@ export function ResourcePage<T>({
   loadingCreate,
   loadingUpdate,
   loadingDelete,
+  transformCreate,
+  transformUpdate,
 }: ResourcePageProps<T>) {
   const { can } = useAuth();
   const [query, setQuery] = useState("");
@@ -150,10 +154,12 @@ export function ResourcePage<T>({
     setSubmitting(true);
     try {
       if (editing) {
-        await onUpdate(editing[idKey] as unknown as number, form as Partial<T>);
+        const payload = transformUpdate ? transformUpdate(form as Partial<T>) : (form as Partial<T>);
+        await onUpdate(editing[idKey] as unknown as number, payload);
         toast.success(`${singular} actualizado`);
       } else {
-        await onCreate(form as Partial<T>);
+        const payload = transformCreate ? transformCreate(form as Partial<T>) : (form as Partial<T>);
+        await onCreate(payload);
         toast.success(`${singular} creado`);
       }
       setOpen(false);

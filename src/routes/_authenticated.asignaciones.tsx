@@ -97,6 +97,14 @@ function Page() {
           ],
         },
       ]}
+      transformCreate={(data) => {
+        const d = data as Record<string, unknown>;
+        return { ...d, idParqueadero: d.idParqueadero === "" ? null : d.idParqueadero } as Partial<AsignacionUsuario>;
+      }}
+      transformUpdate={(data) => {
+        const d = data as Record<string, unknown>;
+        return { estadoAsignacion: d.estadoAsignacion } as Partial<AsignacionUsuario>;
+      }}
       onCreate={(data) => createMutation.mutateAsync(data)}
       onUpdate={(id, data) => updateMutation.mutateAsync({ id, data })}
       onDelete={(id) => deleteMutation.mutateAsync(id)}

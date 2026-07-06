@@ -60,6 +60,7 @@ function Page() {
         { key: "correo", label: "Correo", type: "email", required: true },
         { key: "telefono", label: "Teléfono", type: "text" },
         { key: "cargo", label: "Cargo", type: "text", required: true },
+        { key: "contraseña", label: "Contraseña", type: "password", required: true, placeholder: "Mín. 6 caracteres" },
         {
           key: "idRol",
           label: "Rol",

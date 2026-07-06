@@ -204,7 +204,7 @@ export function useUpdateAsignacion() {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<AsignacionUsuario> }) =>
       apiFetch<AsignacionUsuario>(`/api/AsignacionesUsuario/${id}`, {
-        method: "PATCH",
+        method: "PUT",
         body: JSON.stringify(data),
       }),
     onSuccess: () => {

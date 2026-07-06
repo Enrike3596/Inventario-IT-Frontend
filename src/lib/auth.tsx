@@ -45,9 +45,13 @@ interface LoginResponse {
 }
 
 const ROLE_MAP: Record<string, RoleKey> = {
+  administrador: "super_admin",
   super_admin: "super_admin",
-  coordinador: "coordinador",
+  técnico: "agente_soporte",
   agente_soporte: "agente_soporte",
+  usuario_final: "coordinador",
+  coordinador: "coordinador",
+  auditor: "super_admin",
 };
 
 function mapRole(nombreRol?: string): RoleKey {
@@ -119,14 +123,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const forgotPassword: AuthState["forgotPassword"] = async (email) => {
     await apiFetch("/api/Auth/forgot-password", {
       method: "POST",
-      body: JSON.stringify({ correo: email }),
+      body: JSON.stringify({ email }),
     });
   };
 
   const resetPassword: AuthState["resetPassword"] = async (token, password) => {
     await apiFetch("/api/Auth/reset-password", {
       method: "POST",
-      body: JSON.stringify({ token, nuevaContrasena: password }),
+      body: JSON.stringify({ token, password }),
     });
   };
 

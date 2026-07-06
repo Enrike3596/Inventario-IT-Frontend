@@ -8,6 +8,7 @@ import {
   useCanales,
   useParqueaderos,
   useUsuarios,
+  useActivos,
 } from "@/lib/queries";
 import type { Salida } from "@/lib/types";
 
@@ -21,9 +22,14 @@ function Page() {
   const { data: canales } = useCanales();
   const { data: parqueaderos } = useParqueaderos();
   const { data: usuarios } = useUsuarios();
+  const { data: activos } = useActivos();
   const createMutation = useCreateSalida();
   const updateMutation = useUpdateSalida();
   const deleteMutation = useDeleteSalida();
+
+  const activosOptions = (activos ?? [])
+    .filter((a) => a.estadoActivo === "Disponible")
+    .map((a) => ({ value: a.idActivo, label: `${a.serial} — ${a.marca} ${a.modelo}` }));
 
   return (
     <ResourcePage<Salida>
@@ -82,8 +88,24 @@ function Page() {
         },
         { key: "registroSalida", label: "Registro de salida", type: "text", required: true },
         { key: "numeroTicket", label: "N° Ticket", type: "text" },
+        {
+          key: "idActivo",
+          label: "Activo",
+          type: "select",
+          required: true,
+          options: activosOptions,
+        },
         { key: "observaciones", label: "Observaciones", type: "textarea" },
       ]}
+      transformCreate={(data) => {
+        const d = data as Record<string, unknown>;
+        return {
+          ...d,
+          idParqueaderoDestino: d.idParqueaderoDestino === "" ? null : d.idParqueaderoDestino,
+          idUsuarioDestino: d.idUsuarioDestino === "" ? null : d.idUsuarioDestino,
+          activos: [{ idActivo: d.idActivo as number, cantidad: 1 }],
+        } as Partial<Salida>;
+      }}
       onCreate={(data) => createMutation.mutateAsync(data)}
       onUpdate={(id, data) => updateMutation.mutateAsync({ id, data })}
       onDelete={(id) => deleteMutation.mutateAsync(id)}
