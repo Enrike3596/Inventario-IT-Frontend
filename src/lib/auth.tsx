@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { apiFetch, IS_MOCK, setToken } from "./api";
-import { stores } from "./store";
+import { apiFetch, setToken, getToken } from "./api";
 import type { AuthUser, RoleKey } from "./types";
 
 interface AuthState {
@@ -27,13 +26,64 @@ function readStored(): AuthUser | null {
   }
 }
 
+interface LoginResponse {
+  token: string;
+  expira: string;
+  usuario: {
+    idUsuario: number;
+    idRol: number;
+    nombreRol?: string;
+    idSede: number;
+    nombreSede?: string;
+    nombre: string;
+    correo: string;
+    telefono: string;
+    cargo: string;
+    estadoUsuario: string;
+    fechaCreacion: string;
+  };
+}
+
+const ROLE_MAP: Record<string, RoleKey> = {
+  super_admin: "super_admin",
+  coordinador: "coordinador",
+  agente_soporte: "agente_soporte",
+};
+
+function mapRole(nombreRol?: string): RoleKey {
+  if (!nombreRol) return "agente_soporte";
+  const lower = nombreRol.toLowerCase().replace(/\s+/g, "_");
+  return ROLE_MAP[lower] ?? "agente_soporte";
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setUser(readStored());
-    setLoading(false);
+    const stored = readStored();
+    if (stored && getToken()) {
+      apiFetch<LoginResponse["usuario"]>("/api/Auth/me")
+        .then((data) => {
+          const authUser: AuthUser = {
+            idUsuario: data.idUsuario,
+            nombre: data.nombre,
+            correo: data.correo,
+            role: mapRole(data.nombreRol),
+            idSede: data.idSede,
+            idRol: data.idRol,
+          };
+          persist(authUser);
+        })
+        .catch(() => {
+          setToken(null);
+          persist(null);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setUser(stored);
+      setLoading(false);
+    }
   }, []);
 
   const persist = (u: AuthUser | null) => {
@@ -45,32 +95,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login: AuthState["login"] = async (email, password) => {
-    if (IS_MOCK) {
-      await new Promise((r) => setTimeout(r, 400));
-      const found = stores.usuarios.list().find(
-        (u) => u.email.toLowerCase() === email.toLowerCase(),
-      );
-      if (!found) throw new Error("Credenciales inválidas");
-      if (password.length < 4) throw new Error("Credenciales inválidas");
-      const role = stores.roles.list().find((r) => r.idRol === found.idRol);
-      const auth: AuthUser = {
-        idUsuario: found.idUsuario,
-        nombres: found.nombres,
-        apellidos: found.apellidos,
-        email: found.email,
-        role: (role?.tipo ?? "agente_soporte") as RoleKey,
-        idSede: found.idSede,
-      };
-      setToken(`mock-token-${found.idUsuario}`);
-      persist(auth);
-      return;
-    }
-    const res = await apiFetch<{ token: string; user: AuthUser }>("/auth/login", {
+    const res = await apiFetch<LoginResponse>("/api/Auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ correo: email, contraseña: password }),
     });
     setToken(res.token);
-    persist(res.user);
+    const authUser: AuthUser = {
+      idUsuario: res.usuario.idUsuario,
+      nombre: res.usuario.nombre,
+      correo: res.usuario.correo,
+      role: mapRole(res.usuario.nombreRol),
+      idSede: res.usuario.idSede,
+      idRol: res.usuario.idRol,
+    };
+    persist(authUser);
   };
 
   const logout = () => {
@@ -79,24 +117,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const forgotPassword: AuthState["forgotPassword"] = async (email) => {
-    if (IS_MOCK) {
-      await new Promise((r) => setTimeout(r, 500));
-      return;
-    }
-    await apiFetch("/auth/forgot-password", {
+    await apiFetch("/api/Auth/forgot-password", {
       method: "POST",
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ correo: email }),
     });
   };
 
   const resetPassword: AuthState["resetPassword"] = async (token, password) => {
-    if (IS_MOCK) {
-      await new Promise((r) => setTimeout(r, 500));
-      return;
-    }
-    await apiFetch("/auth/reset-password", {
+    await apiFetch("/api/Auth/reset-password", {
       method: "POST",
-      body: JSON.stringify({ token, password }),
+      body: JSON.stringify({ token, nuevaContrasena: password }),
     });
   };
 

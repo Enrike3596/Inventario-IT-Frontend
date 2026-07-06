@@ -1,8 +1,6 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth, ROLE_LABEL } from "@/lib/auth";
-import { IS_MOCK } from "@/lib/api";
-import { Badge } from "@/components/ui/badge";
 
 interface AppHeaderProps {
   title: string;
@@ -20,11 +18,6 @@ export function AppHeader({ title, subtitle, actions }: AppHeaderProps) {
           <h1 className="font-display text-lg sm:text-xl font-semibold text-foreground truncate">
             {title}
           </h1>
-          {IS_MOCK && (
-            <Badge variant="outline" className="text-[10px] uppercase tracking-wider border-warning/40 text-warning">
-              Demo
-            </Badge>
-          )}
         </div>
         {subtitle && <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
       </div>
@@ -34,11 +27,10 @@ export function AppHeader({ title, subtitle, actions }: AppHeaderProps) {
         {user && (
           <div className="hidden md:flex items-center gap-2 pl-2 border-l border-border">
             <div className="h-8 w-8 rounded-full bg-gradient-brand text-primary-foreground grid place-items-center text-xs font-semibold">
-              {user.nombres[0]}
-              {user.apellidos[0]}
+              {user.nombre[0]}
             </div>
             <div className="text-xs leading-tight">
-              <p className="font-medium">{user.nombres} {user.apellidos}</p>
+              <p className="font-medium">{user.nombre}</p>
               <p className="text-muted-foreground">{ROLE_LABEL[user.role]}</p>
             </div>
           </div>

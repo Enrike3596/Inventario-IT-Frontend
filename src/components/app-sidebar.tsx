@@ -80,7 +80,9 @@ export function AppSidebar() {
         </div>
         {!collapsed && (
           <div className="flex flex-col">
-            <span className="font-display font-semibold text-sidebar-foreground leading-none">SICOT</span>
+            <span className="font-display font-semibold text-sidebar-foreground leading-none">
+              SICOT
+            </span>
             <span className="text-[10px] uppercase tracking-wider text-sidebar-foreground/60 mt-0.5">
               Inventario TI
             </span>
@@ -112,9 +114,7 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border p-3">
         {user && !collapsed && (
           <div className="mb-2 px-1">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">
-              {user.nombres} {user.apellidos}
-            </p>
+            <p className="text-sm font-medium text-sidebar-foreground truncate">{user.nombre}</p>
             <p className="text-xs text-sidebar-foreground/60 truncate">{ROLE_LABEL[user.role]}</p>
           </div>
         )}

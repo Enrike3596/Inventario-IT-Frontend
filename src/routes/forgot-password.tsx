@@ -42,7 +42,10 @@ function ForgotPage() {
     <div className="min-h-screen grid place-items-center px-4 bg-background">
       <Card className="w-full max-w-md shadow-elegant">
         <CardContent className="p-8">
-          <Link to="/auth" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
+          <Link
+            to="/auth"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
+          >
             <ArrowLeft className="h-4 w-4" /> Volver al login
           </Link>
           <h1 className="font-display text-2xl font-semibold">Recuperar contraseña</h1>
@@ -56,7 +59,8 @@ function ForgotPage() {
                 <Mail className="h-4 w-4 text-primary" /> Correo enviado
               </div>
               <p className="mt-1 text-muted-foreground">
-                Si <strong>{email}</strong> está registrado, recibirás un enlace en los próximos minutos.
+                Si <strong>{email}</strong> está registrado, recibirás un enlace en los próximos
+                minutos.
               </p>
             </div>
           ) : (
@@ -73,7 +77,11 @@ function ForgotPage() {
                 />
               </div>
               <Button type="submit" variant="brand" className="w-full" disabled={loading}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4" />
+                )}
                 Enviar enlace
               </Button>
             </form>

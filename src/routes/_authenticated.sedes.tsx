@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourcePage } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
-import { stores } from "@/lib/store";
+import { useSedes, useCreateSede, useUpdateSede, useDeleteSede } from "@/lib/queries";
 import type { Sede } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/sedes")({
@@ -10,15 +10,21 @@ export const Route = createFileRoute("/_authenticated/sedes")({
 });
 
 function Page() {
+  const { data: sedes, isLoading } = useSedes();
+  const createMutation = useCreateSede();
+  const updateMutation = useUpdateSede();
+  const deleteMutation = useDeleteSede();
+
   return (
     <ResourcePage<Sede>
       title="Sedes"
       subtitle="Ubicaciones físicas de la organización"
-      resource={stores.sedes}
+      data={sedes ?? []}
+      isLoading={isLoading}
       idKey="idSede"
       singular="sede"
       searchKeys={["nombre", "ciudad", "direccion"]}
-      defaultValues={{ estado: "Activo" }}
+      defaultValues={{}}
       columns={[
         { header: "Nombre", key: "nombre" },
         { header: "Ciudad", key: "ciudad" },
@@ -45,6 +51,12 @@ function Page() {
           ],
         },
       ]}
+      onCreate={(data) => createMutation.mutateAsync(data)}
+      onUpdate={(id, data) => updateMutation.mutateAsync({ id, data })}
+      onDelete={(id) => deleteMutation.mutateAsync(id)}
+      loadingCreate={createMutation.isPending}
+      loadingUpdate={updateMutation.isPending}
+      loadingDelete={deleteMutation.isPending}
     />
   );
 }

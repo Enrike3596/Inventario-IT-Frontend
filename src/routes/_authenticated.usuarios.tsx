@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourcePage } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
-import { stores } from "@/lib/store";
+import {
+  useUsuarios,
+  useCreateUsuario,
+  useUpdateUsuario,
+  useDeleteUsuario,
+  useRoles,
+  useSedes,
+} from "@/lib/queries";
 import type { Usuario } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
@@ -10,60 +17,65 @@ export const Route = createFileRoute("/_authenticated/usuarios")({
 });
 
 function Page() {
-  const roles = stores.roles.list();
-  const sedes = stores.sedes.list();
+  const { data: usuarios, isLoading } = useUsuarios();
+  const { data: roles } = useRoles();
+  const { data: sedes } = useSedes();
+  const createMutation = useCreateUsuario();
+  const updateMutation = useUpdateUsuario();
+  const deleteMutation = useDeleteUsuario();
+
   return (
     <ResourcePage<Usuario>
       title="Usuarios"
       subtitle="Personas con acceso al sistema"
-      resource={stores.usuarios}
+      data={usuarios ?? []}
+      isLoading={isLoading}
       idKey="idUsuario"
       singular="usuario"
-      searchKeys={["nombres", "apellidos", "email", "documento"]}
-      defaultValues={{ estado: "Activo" }}
+      searchKeys={["nombre", "correo", "cargo"]}
+      defaultValues={{}}
       columns={[
-        { header: "Documento", key: "documento", className: "font-mono text-xs" },
-        {
-          header: "Nombre",
-          render: (u) => `${u.nombres} ${u.apellidos}`,
-        },
-        { header: "Correo", key: "email" },
+        { header: "Nombre", key: "nombre" },
+        { header: "Correo", key: "correo" },
+        { header: "Cargo", key: "cargo" },
         {
           header: "Rol",
-          render: (u) => roles.find((r) => r.idRol === u.idRol)?.nombre ?? "—",
+          render: (u) => u.nombreRol ?? "—",
         },
         {
           header: "Sede",
-          render: (u) => sedes.find((s) => s.idSede === u.idSede)?.nombre ?? "—",
+          render: (u) => u.nombreSede ?? "—",
         },
         {
           header: "Estado",
           render: (u) => (
-            <Badge variant={u.estado === "Activo" ? "default" : "secondary"}>{u.estado}</Badge>
+            <Badge variant={u.estadoUsuario === "Activo" ? "default" : "secondary"}>
+              {u.estadoUsuario}
+            </Badge>
           ),
         },
       ]}
       fields={[
-        { key: "nombres", label: "Nombres", type: "text", required: true },
-        { key: "apellidos", label: "Apellidos", type: "text", required: true },
-        { key: "documento", label: "Documento", type: "text", required: true },
-        { key: "email", label: "Correo", type: "email", required: true },
+        { key: "nombre", label: "Nombre completo", type: "text", required: true },
+        { key: "correo", label: "Correo", type: "email", required: true },
+        { key: "telefono", label: "Teléfono", type: "text" },
+        { key: "cargo", label: "Cargo", type: "text", required: true },
         {
           key: "idRol",
           label: "Rol",
           type: "select",
           required: true,
-          options: roles.map((r) => ({ value: r.idRol, label: r.nombre })),
+          options: (roles ?? []).map((r) => ({ value: r.idRol, label: r.nombre })),
         },
         {
           key: "idSede",
           label: "Sede",
           type: "select",
           required: true,
-          options: sedes.map((s) => ({ value: s.idSede, label: s.nombre })),
+          options: (sedes ?? []).map((s) => ({ value: s.idSede, label: s.nombre })),
         },
         {
-          key: "estado",
+          key: "estadoUsuario",
           label: "Estado",
           type: "select",
           required: true,
@@ -73,6 +85,12 @@ function Page() {
           ],
         },
       ]}
+      onCreate={(data) => createMutation.mutateAsync(data)}
+      onUpdate={(id, data) => updateMutation.mutateAsync({ id, data })}
+      onDelete={(id) => deleteMutation.mutateAsync(id)}
+      loadingCreate={createMutation.isPending}
+      loadingUpdate={updateMutation.isPending}
+      loadingDelete={deleteMutation.isPending}
     />
   );
 }

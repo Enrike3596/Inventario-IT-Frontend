@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourcePage } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
-import { stores } from "@/lib/store";
+import { useMovimientos, useActivos } from "@/lib/queries";
 import type { Movimiento } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/movimientos")({
@@ -17,34 +17,37 @@ const tipoTint: Record<string, string> = {
 };
 
 function Page() {
-  const activos = stores.activos.list();
+  const { data: movimientos, isLoading } = useMovimientos();
+  const { data: activos } = useActivos();
+
   return (
     <ResourcePage<Movimiento>
       title="Movimientos"
       subtitle="Trazabilidad de entradas, salidas y asignaciones"
-      resource={stores.movimientos}
-      idKey="idMovimiento"
+      data={movimientos ?? []}
+      isLoading={isLoading}
+      idKey="idHistorial"
       singular="movimiento"
-      searchKeys={["observaciones", "tipo"]}
-      defaultValues={{ fecha: new Date().toISOString().slice(0, 10), tipo: "Entrada" }}
+      searchKeys={["tipoMovimiento"]}
+      defaultValues={{}}
       columns={[
-        { header: "Fecha", key: "fecha" },
+        { header: "Fecha", render: (m) => new Date(m.fechaMovimiento).toLocaleDateString("es-CO") },
         {
           header: "Tipo",
           render: (m) => (
-            <Badge variant="outline" className={tipoTint[m.tipo]}>
-              {m.tipo}
+            <Badge variant="outline" className={tipoTint[m.tipoMovimiento]}>
+              {m.tipoMovimiento}
             </Badge>
           ),
         },
         {
           header: "Activo",
           render: (m) => {
-            const a = activos.find((x) => x.idActivo === m.idActivo);
+            const a = (activos ?? []).find((x) => x.idActivo === m.idActivo);
             return a ? `${a.serial} — ${a.marca} ${a.modelo}` : `#${m.idActivo}`;
           },
         },
-        { header: "Observaciones", key: "observaciones" },
+        { header: "Serial", render: (m) => m.serial ?? "—" },
       ]}
       fields={[
         {
@@ -52,10 +55,13 @@ function Page() {
           label: "Activo",
           type: "select",
           required: true,
-          options: activos.map((a) => ({ value: a.idActivo, label: `${a.serial} — ${a.marca} ${a.modelo}` })),
+          options: (activos ?? []).map((a) => ({
+            value: a.idActivo,
+            label: `${a.serial} — ${a.marca} ${a.modelo}`,
+          })),
         },
         {
-          key: "tipo",
+          key: "tipoMovimiento",
           label: "Tipo",
           type: "select",
           required: true,
@@ -66,9 +72,10 @@ function Page() {
             { value: "Devolucion", label: "Devolución" },
           ],
         },
-        { key: "fecha", label: "Fecha", type: "date", required: true },
-        { key: "observaciones", label: "Observaciones", type: "textarea" },
       ]}
+      onCreate={async () => {}}
+      onUpdate={async () => {}}
+      onDelete={async () => {}}
     />
   );
 }

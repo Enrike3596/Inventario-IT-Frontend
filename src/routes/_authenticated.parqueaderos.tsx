@@ -1,7 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourcePage } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
-import { stores } from "@/lib/store";
+import {
+  useParqueaderos,
+  useCreateParqueadero,
+  useUpdateParqueadero,
+  useDeleteParqueadero,
+  useSedes,
+} from "@/lib/queries";
 import type { Parqueadero } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/parqueaderos")({
@@ -10,21 +16,27 @@ export const Route = createFileRoute("/_authenticated/parqueaderos")({
 });
 
 function Page() {
-  const sedes = stores.sedes.list();
+  const { data: parqueaderos, isLoading } = useParqueaderos();
+  const { data: sedes } = useSedes();
+  const createMutation = useCreateParqueadero();
+  const updateMutation = useUpdateParqueadero();
+  const deleteMutation = useDeleteParqueadero();
+
   return (
     <ResourcePage<Parqueadero>
       title="Parqueaderos"
       subtitle="Bodegas y zonas de almacenamiento por sede"
-      resource={stores.parqueaderos}
+      data={parqueaderos ?? []}
+      isLoading={isLoading}
       idKey="idParqueadero"
       singular="parqueadero"
       searchKeys={["nombre", "ubicacion"]}
-      defaultValues={{ estado: "Activo" }}
+      defaultValues={{}}
       columns={[
         { header: "Nombre", key: "nombre" },
         {
           header: "Sede",
-          render: (r) => sedes.find((s) => s.idSede === r.idSede)?.nombre ?? "—",
+          render: (r) => r.nombreSede ?? "—",
         },
         { header: "Ubicación", key: "ubicacion" },
         {
@@ -41,7 +53,7 @@ function Page() {
           label: "Sede",
           type: "select",
           required: true,
-          options: sedes.map((s) => ({ value: s.idSede, label: s.nombre })),
+          options: (sedes ?? []).map((s) => ({ value: s.idSede, label: s.nombre })),
         },
         { key: "ubicacion", label: "Ubicación", type: "text", required: true },
         {
@@ -55,6 +67,12 @@ function Page() {
           ],
         },
       ]}
+      onCreate={(data) => createMutation.mutateAsync(data)}
+      onUpdate={(id, data) => updateMutation.mutateAsync({ id, data })}
+      onDelete={(id) => deleteMutation.mutateAsync(id)}
+      loadingCreate={createMutation.isPending}
+      loadingUpdate={updateMutation.isPending}
+      loadingDelete={deleteMutation.isPending}
     />
   );
 }

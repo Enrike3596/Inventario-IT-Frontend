@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourcePage } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
-import { stores } from "@/lib/store";
+import { useRoles, useCreateRol, useUpdateRol, useDeleteRol } from "@/lib/queries";
 import type { Role } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/roles")({
@@ -10,15 +10,21 @@ export const Route = createFileRoute("/_authenticated/roles")({
 });
 
 function Page() {
+  const { data: roles, isLoading } = useRoles();
+  const createMutation = useCreateRol();
+  const updateMutation = useUpdateRol();
+  const deleteMutation = useDeleteRol();
+
   return (
     <ResourcePage<Role>
       title="Roles"
       subtitle="Perfiles de acceso al sistema"
-      resource={stores.roles}
+      data={roles ?? []}
+      isLoading={isLoading}
       idKey="idRol"
       singular="rol"
       searchKeys={["nombre", "tipo"]}
-      defaultValues={{ estado: "Activo", tipo: "agente_soporte" }}
+      defaultValues={{}}
       columns={[
         { header: "Nombre", key: "nombre" },
         {
@@ -60,6 +66,12 @@ function Page() {
           ],
         },
       ]}
+      onCreate={(data) => createMutation.mutateAsync(data)}
+      onUpdate={(id, data) => updateMutation.mutateAsync({ id, data })}
+      onDelete={(id) => deleteMutation.mutateAsync(id)}
+      loadingCreate={createMutation.isPending}
+      loadingUpdate={updateMutation.isPending}
+      loadingDelete={deleteMutation.isPending}
     />
   );
 }

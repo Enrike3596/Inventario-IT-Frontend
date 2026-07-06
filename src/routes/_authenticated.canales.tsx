@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourcePage } from "@/components/resource-page";
-import { stores } from "@/lib/store";
+import { useCanales, useCreateCanal, useUpdateCanal, useDeleteCanal } from "@/lib/queries";
 import type { Canal } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/canales")({
@@ -9,23 +9,35 @@ export const Route = createFileRoute("/_authenticated/canales")({
 });
 
 function Page() {
+  const { data: canales, isLoading } = useCanales();
+  const createMutation = useCreateCanal();
+  const updateMutation = useUpdateCanal();
+  const deleteMutation = useDeleteCanal();
+
   return (
     <ResourcePage<Canal>
       title="Canales"
       subtitle="Canales por los que se solicitan salidas"
-      resource={stores.canales}
+      data={canales ?? []}
+      isLoading={isLoading}
       idKey="idCanal"
       singular="canal"
       searchKeys={["nombre"]}
-      defaultValues={{ fechaSolicitud: new Date().toISOString().slice(0, 10) }}
+      defaultValues={{}}
       columns={[
         { header: "Nombre", key: "nombre" },
-        { header: "Fecha solicitud", key: "fechaSolicitud" },
+        {
+          header: "Fecha solicitud",
+          render: (r) => new Date(r.fechaSolicitud).toLocaleDateString("es-CO"),
+        },
       ]}
-      fields={[
-        { key: "nombre", label: "Nombre", type: "text", required: true },
-        { key: "fechaSolicitud", label: "Fecha solicitud", type: "date", required: true },
-      ]}
+      fields={[{ key: "nombre", label: "Nombre", type: "text", required: true }]}
+      onCreate={(data) => createMutation.mutateAsync(data)}
+      onUpdate={(id, data) => updateMutation.mutateAsync({ id, data })}
+      onDelete={(id) => deleteMutation.mutateAsync(id)}
+      loadingCreate={createMutation.isPending}
+      loadingUpdate={updateMutation.isPending}
+      loadingDelete={deleteMutation.isPending}
     />
   );
 }

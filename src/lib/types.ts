@@ -1,7 +1,6 @@
-// Domain types mirroring the .NET models.
+// Domain types matching the .NET response DTOs (camelCase JSON).
 
 export type EstadoGenerico = "Activo" | "Inactivo";
-export type EstadoUsuario = "Activo" | "Inactivo";
 export type EstadoActivo = "Disponible" | "Asignado" | "EnMantenimiento" | "DadoDeBaja";
 export type EstadoAsignacion = "Activa" | "Finalizada";
 export type TipoMovimiento = "Entrada" | "Salida" | "Asignacion" | "Devolucion";
@@ -11,19 +10,22 @@ export type RoleKey = "super_admin" | "coordinador" | "agente_soporte";
 export interface Role {
   idRol: number;
   nombre: string;
-  tipo: RoleKey;
+  tipo: string;
   estado: EstadoGenerico;
 }
 
 export interface Usuario {
   idUsuario: number;
-  nombres: string;
-  apellidos: string;
-  email: string;
-  documento: string;
   idRol: number;
+  nombreRol?: string;
   idSede: number;
-  estado: EstadoUsuario;
+  nombreSede?: string;
+  nombre: string;
+  correo: string;
+  telefono: string;
+  cargo: string;
+  estadoUsuario: EstadoGenerico;
+  fechaCreacion: string;
 }
 
 export interface Sede {
@@ -37,6 +39,7 @@ export interface Sede {
 export interface Parqueadero {
   idParqueadero: number;
   idSede: number;
+  nombreSede?: string;
   nombre: string;
   ubicacion: string;
   estado: EstadoGenerico;
@@ -59,13 +62,19 @@ export interface OrdenCompra {
 
 export interface Activo {
   idActivo: number;
+  idCategoria: number;
+  nombreCategoria?: string;
+  idOrden: number;
+  numeroOC?: string;
+  codigoActivo: string;
   serial: string;
   marca: string;
   modelo: string;
-  descripcion: string;
-  idCategoria: number;
-  idOrden: number | null;
-  estado: EstadoActivo;
+  referencia: string;
+  estadoActivo: EstadoActivo;
+  fechaAdquisicion: string;
+  fechaBaja: string | null;
+  observaciones: string;
 }
 
 export interface Canal {
@@ -77,34 +86,57 @@ export interface Canal {
 export interface Salida {
   idSalida: number;
   idCanal: number;
-  idParqueadero: number;
+  nombreCanal?: string;
+  codigoUnico: string;
+  numeroTicket: string | null;
+  idUsuarioDestino: number | null;
+  nombreUsuarioDestino?: string;
+  idParqueaderoDestino: number | null;
+  nombreParqueaderoDestino?: string;
+  idUsuarioEntrega: number;
+  nombreUsuarioEntrega?: string;
   fechaSalida: string;
-  observaciones: string;
+  registroSalida: string;
+  observaciones: string | null;
 }
 
 export interface AsignacionUsuario {
   idAsignacion: number;
-  idUsuario: number;
   idActivo: number;
+  codigoActivo?: string;
+  serial?: string;
+  idUsuarioDestino: number;
+  nombreUsuarioDestino?: string;
   idParqueadero: number | null;
+  nombreParqueadero?: string;
   fechaAsignacion: string;
-  fechaDevolucion: string | null;
-  estado: EstadoAsignacion;
+  estadoAsignacion: EstadoAsignacion;
 }
 
 export interface Movimiento {
-  idMovimiento: number;
+  idHistorial: number;
   idActivo: number;
-  tipo: TipoMovimiento;
-  fecha: string;
-  observaciones: string;
+  codigoActivo?: string;
+  serial?: string;
+  idSalida: number;
+  codigoSalida?: string;
+  tipoMovimiento: TipoMovimiento;
+  fechaMovimiento: string;
+  idUsuarioEntrega: number;
+  nombreUsuarioEntrega?: string;
 }
 
 export interface AuthUser {
   idUsuario: number;
-  nombres: string;
-  apellidos: string;
-  email: string;
+  nombre: string;
+  correo: string;
   role: RoleKey;
   idSede: number;
+  idRol: number;
+}
+
+export interface ApiResponse<T> {
+  exito: boolean;
+  data: T;
+  mensaje: string | null;
 }

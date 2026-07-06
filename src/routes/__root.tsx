@@ -55,9 +55,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Algo salió mal
-        </h1>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">Algo salió mal</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Ocurrió un error inesperado. Intenta de nuevo o vuelve al inicio.
         </p>
@@ -89,10 +87,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "SICOT — Sistema de Inventario TI" },
-      { name: "description", content: "Plataforma corporativa para gestión de activos, asignaciones y movimientos de TI." },
+      {
+        name: "description",
+        content:
+          "Plataforma corporativa para gestión de activos, asignaciones y movimientos de TI.",
+      },
       { name: "author", content: "SICOT" },
       { property: "og:title", content: "SICOT — Sistema de Inventario TI" },
-      { property: "og:description", content: "Plataforma corporativa para gestión de activos, asignaciones y movimientos de TI." },
+      {
+        property: "og:description",
+        content:
+          "Plataforma corporativa para gestión de activos, asignaciones y movimientos de TI.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

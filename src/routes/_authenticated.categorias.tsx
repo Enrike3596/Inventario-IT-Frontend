@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourcePage } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
-import { stores } from "@/lib/store";
+import {
+  useCategorias,
+  useCreateCategoria,
+  useUpdateCategoria,
+  useDeleteCategoria,
+} from "@/lib/queries";
 import type { CategoriaActivo } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/categorias")({
@@ -10,15 +15,21 @@ export const Route = createFileRoute("/_authenticated/categorias")({
 });
 
 function Page() {
+  const { data: categorias, isLoading } = useCategorias();
+  const createMutation = useCreateCategoria();
+  const updateMutation = useUpdateCategoria();
+  const deleteMutation = useDeleteCategoria();
+
   return (
     <ResourcePage<CategoriaActivo>
       title="Categorías de Activos"
       subtitle="Clasificación de tipos de equipos"
-      resource={stores.categorias}
+      data={categorias ?? []}
+      isLoading={isLoading}
       idKey="idCategoria"
       singular="categoría"
       searchKeys={["nombre"]}
-      defaultValues={{ estado: "Activo" }}
+      defaultValues={{}}
       columns={[
         { header: "ID", key: "idCategoria", className: "w-16 font-mono text-xs" },
         { header: "Nombre", key: "nombre" },
@@ -42,6 +53,12 @@ function Page() {
           ],
         },
       ]}
+      onCreate={(data) => createMutation.mutateAsync(data)}
+      onUpdate={(id, data) => updateMutation.mutateAsync({ id, data })}
+      onDelete={(id) => deleteMutation.mutateAsync(id)}
+      loadingCreate={createMutation.isPending}
+      loadingUpdate={updateMutation.isPending}
+      loadingDelete={deleteMutation.isPending}
     />
   );
 }

@@ -1,6 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourcePage } from "@/components/resource-page";
-import { stores } from "@/lib/store";
+import {
+  useSalidas,
+  useCreateSalida,
+  useUpdateSalida,
+  useDeleteSalida,
+  useCanales,
+  useParqueaderos,
+  useUsuarios,
+} from "@/lib/queries";
 import type { Salida } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/salidas")({
@@ -9,28 +17,35 @@ export const Route = createFileRoute("/_authenticated/salidas")({
 });
 
 function Page() {
-  const canales = stores.canales.list();
-  const parqueaderos = stores.parqueaderos.list();
+  const { data: salidas, isLoading } = useSalidas();
+  const { data: canales } = useCanales();
+  const { data: parqueaderos } = useParqueaderos();
+  const { data: usuarios } = useUsuarios();
+  const createMutation = useCreateSalida();
+  const updateMutation = useUpdateSalida();
+  const deleteMutation = useDeleteSalida();
+
   return (
     <ResourcePage<Salida>
       title="Salidas"
       subtitle="Salidas de inventario por canal y parqueadero"
-      resource={stores.salidas}
+      data={salidas ?? []}
+      isLoading={isLoading}
       idKey="idSalida"
       singular="salida"
-      searchKeys={["observaciones"]}
-      defaultValues={{ fechaSalida: new Date().toISOString().slice(0, 10) }}
+      searchKeys={["observaciones", "codigoUnico"]}
+      defaultValues={{}}
       columns={[
-        { header: "Fecha", key: "fechaSalida" },
+        { header: "Fecha", render: (s) => new Date(s.fechaSalida).toLocaleDateString("es-CO") },
         {
           header: "Canal",
-          render: (s) => canales.find((c) => c.idCanal === s.idCanal)?.nombre ?? "—",
+          render: (s) => s.nombreCanal ?? "—",
         },
         {
           header: "Parqueadero",
-          render: (s) => parqueaderos.find((p) => p.idParqueadero === s.idParqueadero)?.nombre ?? "—",
+          render: (s) => s.nombreParqueaderoDestino ?? "—",
         },
-        { header: "Observaciones", key: "observaciones" },
+        { header: "Observaciones", render: (s) => s.observaciones ?? "—" },
       ]}
       fields={[
         {
@@ -38,18 +53,43 @@ function Page() {
           label: "Canal",
           type: "select",
           required: true,
-          options: canales.map((c) => ({ value: c.idCanal, label: c.nombre })),
+          options: (canales ?? []).map((c) => ({ value: c.idCanal, label: c.nombre })),
         },
         {
-          key: "idParqueadero",
-          label: "Parqueadero",
+          key: "idParqueaderoDestino",
+          label: "Parqueadero destino",
+          type: "select",
+          options: [
+            { value: "" as unknown as number, label: "— Ninguno —" },
+            ...(parqueaderos ?? []).map((p) => ({ value: p.idParqueadero, label: p.nombre })),
+          ],
+        },
+        {
+          key: "idUsuarioDestino",
+          label: "Usuario destino",
+          type: "select",
+          options: [
+            { value: "" as unknown as number, label: "— Ninguno —" },
+            ...(usuarios ?? []).map((u) => ({ value: u.idUsuario, label: u.nombre })),
+          ],
+        },
+        {
+          key: "idUsuarioEntrega",
+          label: "Usuario entrega",
           type: "select",
           required: true,
-          options: parqueaderos.map((p) => ({ value: p.idParqueadero, label: p.nombre })),
+          options: (usuarios ?? []).map((u) => ({ value: u.idUsuario, label: u.nombre })),
         },
-        { key: "fechaSalida", label: "Fecha salida", type: "date", required: true },
+        { key: "registroSalida", label: "Registro de salida", type: "text", required: true },
+        { key: "numeroTicket", label: "N° Ticket", type: "text" },
         { key: "observaciones", label: "Observaciones", type: "textarea" },
       ]}
+      onCreate={(data) => createMutation.mutateAsync(data)}
+      onUpdate={(id, data) => updateMutation.mutateAsync({ id, data })}
+      onDelete={(id) => deleteMutation.mutateAsync(id)}
+      loadingCreate={createMutation.isPending}
+      loadingUpdate={updateMutation.isPending}
+      loadingDelete={deleteMutation.isPending}
     />
   );
 }

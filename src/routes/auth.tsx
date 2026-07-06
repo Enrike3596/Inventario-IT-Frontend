@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
-import { IS_MOCK } from "@/lib/api";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -48,7 +47,9 @@ function AuthPage() {
         <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_20%,white,transparent_40%),radial-gradient(circle_at_80%_70%,var(--brand-teal),transparent_50%)]" />
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-white/15 backdrop-blur grid place-items-center font-display font-bold">S</div>
+            <div className="h-10 w-10 rounded-lg bg-white/15 backdrop-blur grid place-items-center font-display font-bold">
+              S
+            </div>
             <span className="font-display text-xl font-semibold tracking-tight">SICOT</span>
           </div>
         </div>
@@ -57,14 +58,17 @@ function AuthPage() {
             Control total de tu inventario TI.
           </h1>
           <p className="mt-4 text-white/85 text-lg">
-            Activos, asignaciones, órdenes de compra y movimientos operativos en una sola plataforma corporativa.
+            Activos, asignaciones, órdenes de compra y movimientos operativos en una sola plataforma
+            corporativa.
           </p>
           <div className="mt-8 flex items-center gap-3 text-sm text-white/80">
             <ShieldCheck className="h-5 w-5" />
             <span>Acceso con roles: Super Admin · Coordinador · Agente Soporte TI</span>
           </div>
         </div>
-        <p className="relative z-10 text-xs text-white/70">© {new Date().getFullYear()} SICOT · Sistema Corporativo de Inventario TI</p>
+        <p className="relative z-10 text-xs text-white/70">
+          © {new Date().getFullYear()} SICOT · Sistema Corporativo de Inventario TI
+        </p>
       </div>
 
       {/* Form panel */}
@@ -110,22 +114,14 @@ function AuthPage() {
               </div>
 
               <Button type="submit" variant="brand" size="lg" className="w-full" disabled={loading}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <LogIn className="h-4 w-4" />
+                )}
                 Ingresar
               </Button>
             </form>
-
-            {IS_MOCK && (
-              <div className="mt-6 rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-                <p className="font-medium text-foreground mb-1">Modo demostración</p>
-                <p>Ingresa con cualquiera de estos correos (contraseña: cualquiera de 4+ caracteres):</p>
-                <ul className="mt-2 space-y-0.5 font-mono">
-                  <li>admin@sicot.local — Super Admin</li>
-                  <li>coord@sicot.local — Coordinador</li>
-                  <li>soporte@sicot.local — Agente TI</li>
-                </ul>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>

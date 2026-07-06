@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourcePage } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
-import { stores } from "@/lib/store";
+import {
+  useActivos,
+  useCreateActivo,
+  useUpdateActivo,
+  useDeleteActivo,
+  useCategorias,
+  useOrdenesCompra,
+} from "@/lib/queries";
 import type { Activo } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/activos")({
@@ -17,32 +24,36 @@ const estadoTint: Record<string, string> = {
 };
 
 function ActivosPage() {
-  const categorias = stores.categorias.list();
-  const ordenes = stores.ordenes.list();
+  const { data: activos, isLoading } = useActivos();
+  const { data: categorias } = useCategorias();
+  const { data: ordenes } = useOrdenesCompra();
+  const createMutation = useCreateActivo();
+  const updateMutation = useUpdateActivo();
+  const deleteMutation = useDeleteActivo();
 
   return (
     <ResourcePage<Activo>
       title="Activos TI"
       subtitle="Inventario de equipos y dispositivos tecnológicos"
-      resource={stores.activos}
+      data={activos ?? []}
+      isLoading={isLoading}
       idKey="idActivo"
       singular="activo"
-      searchKeys={["serial", "marca", "modelo", "descripcion"]}
-      defaultValues={{ estado: "Disponible" }}
+      searchKeys={["serial", "marca", "modelo", "observaciones"]}
+      defaultValues={{}}
       columns={[
         { header: "Serial", key: "serial", className: "font-mono text-xs" },
         { header: "Marca", key: "marca" },
         { header: "Modelo", key: "modelo" },
         {
           header: "Categoría",
-          render: (r) =>
-            categorias.find((c) => c.idCategoria === r.idCategoria)?.nombre ?? "—",
+          render: (r) => r.nombreCategoria ?? "—",
         },
         {
           header: "Estado",
           render: (r) => (
-            <Badge variant="outline" className={estadoTint[r.estado]}>
-              {r.estado}
+            <Badge variant="outline" className={estadoTint[r.estadoActivo]}>
+              {r.estadoActivo}
             </Badge>
           ),
         },
@@ -51,25 +62,23 @@ function ActivosPage() {
         { key: "serial", label: "Serial", type: "text", required: true },
         { key: "marca", label: "Marca", type: "text", required: true },
         { key: "modelo", label: "Modelo", type: "text", required: true },
-        { key: "descripcion", label: "Descripción", type: "textarea" },
+        { key: "referencia", label: "Referencia", type: "text" },
         {
           key: "idCategoria",
           label: "Categoría",
           type: "select",
           required: true,
-          options: categorias.map((c) => ({ value: c.idCategoria, label: c.nombre })),
+          options: (categorias ?? []).map((c) => ({ value: c.idCategoria, label: c.nombre })),
         },
         {
           key: "idOrden",
           label: "Orden de compra",
           type: "select",
-          options: [
-            { value: "", label: "— Ninguna —" },
-            ...ordenes.map((o) => ({ value: o.idOrden, label: o.numeroOC })),
-          ],
+          required: true,
+          options: (ordenes ?? []).map((o) => ({ value: o.idOrden, label: o.numeroOC })),
         },
         {
-          key: "estado",
+          key: "estadoActivo",
           label: "Estado",
           type: "select",
           required: true,
@@ -80,7 +89,14 @@ function ActivosPage() {
             { value: "DadoDeBaja", label: "Dado de baja" },
           ],
         },
+        { key: "observaciones", label: "Observaciones", type: "textarea" },
       ]}
+      onCreate={(data) => createMutation.mutateAsync(data)}
+      onUpdate={(id, data) => updateMutation.mutateAsync({ id, data })}
+      onDelete={(id) => deleteMutation.mutateAsync(id)}
+      loadingCreate={createMutation.isPending}
+      loadingUpdate={updateMutation.isPending}
+      loadingDelete={deleteMutation.isPending}
     />
   );
 }

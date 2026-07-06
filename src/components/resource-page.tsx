@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -41,12 +41,23 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
-import { Resource, useResource } from "@/lib/store";
 
 export type FieldDef =
-  | { key: string; label: string; type: "text" | "email" | "number" | "date"; required?: boolean; placeholder?: string }
+  | {
+      key: string;
+      label: string;
+      type: "text" | "email" | "number" | "date";
+      required?: boolean;
+      placeholder?: string;
+    }
   | { key: string; label: string; type: "textarea"; required?: boolean; placeholder?: string }
-  | { key: string; label: string; type: "select"; options: { value: string | number; label: string }[]; required?: boolean };
+  | {
+      key: string;
+      label: string;
+      type: "select";
+      options: { value: string | number; label: string }[];
+      required?: boolean;
+    };
 
 export interface Column<T> {
   header: string;
@@ -58,41 +69,59 @@ export interface Column<T> {
 interface ResourcePageProps<T> {
   title: string;
   subtitle?: string;
-  resource: Resource<T>;
+  data: T[];
+  isLoading: boolean;
   idKey: keyof T;
   columns: Column<T>[];
   fields: FieldDef[];
   searchKeys: (keyof T)[];
   singular: string;
   defaultValues?: Partial<T>;
+  onCreate: (data: Partial<T>) => Promise<unknown>;
+  onUpdate: (id: number, data: Partial<T>) => Promise<unknown>;
+  onDelete: (id: number) => Promise<unknown>;
+  loadingCreate?: boolean;
+  loadingUpdate?: boolean;
+  loadingDelete?: boolean;
 }
 
 export function ResourcePage<T>({
   title,
   subtitle,
-  resource,
+  data,
+  isLoading,
   idKey,
   columns,
   fields,
   searchKeys,
   singular,
   defaultValues,
+  onCreate,
+  onUpdate,
+  onDelete,
+  loadingCreate,
+  loadingUpdate,
+  loadingDelete,
 }: ResourcePageProps<T>) {
-  const rows = useResource(resource);
   const { can } = useAuth();
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<T | null>(null);
   const [open, setOpen] = useState(false);
   const [toDelete, setToDelete] = useState<T | null>(null);
   const [form, setForm] = useState<Record<string, unknown>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return rows;
+    if (!query.trim()) return data;
     const q = query.toLowerCase();
-    return rows.filter((r) =>
-      searchKeys.some((k) => String(r[k] ?? "").toLowerCase().includes(q)),
+    return data.filter((r) =>
+      searchKeys.some((k) =>
+        String(r[k] ?? "")
+          .toLowerCase()
+          .includes(q),
+      ),
     );
-  }, [rows, query, searchKeys]);
+  }, [data, query, searchKeys]);
 
   const openCreate = () => {
     const initial: Record<string, unknown> = { ...(defaultValues ?? {}) };
@@ -110,7 +139,7 @@ export function ResourcePage<T>({
     setOpen(true);
   };
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     for (const f of fields) {
       if (f.required && (form[f.key] === "" || form[f.key] === undefined || form[f.key] === null)) {
@@ -118,21 +147,35 @@ export function ResourcePage<T>({
         return;
       }
     }
-    if (editing) {
-      resource.update(editing[idKey] as unknown as number, form as Partial<T>);
-      toast.success(`${singular} actualizado`);
-    } else {
-      resource.create(form as Partial<T>);
-      toast.success(`${singular} creado`);
+    setSubmitting(true);
+    try {
+      if (editing) {
+        await onUpdate(editing[idKey] as unknown as number, form as Partial<T>);
+        toast.success(`${singular} actualizado`);
+      } else {
+        await onCreate(form as Partial<T>);
+        toast.success(`${singular} creado`);
+      }
+      setOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error");
+    } finally {
+      setSubmitting(false);
     }
-    setOpen(false);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!toDelete) return;
-    resource.remove(toDelete[idKey] as unknown as number);
-    toast.success(`${singular} eliminado`);
-    setToDelete(null);
+    setSubmitting(true);
+    try {
+      await onDelete(toDelete[idKey] as unknown as number);
+      toast.success(`${singular} eliminado`);
+      setToDelete(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const canCreate = can("create");
@@ -185,9 +228,18 @@ export function ResourcePage<T>({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.length === 0 ? (
+                {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={columns.length + 1} className="text-center text-sm text-muted-foreground py-10">
+                    <TableCell colSpan={columns.length + 1} className="text-center py-10">
+                      <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+                    </TableCell>
+                  </TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length + 1}
+                      className="text-center text-sm text-muted-foreground py-10"
+                    >
                       Sin registros
                     </TableCell>
                   </TableRow>
@@ -202,7 +254,12 @@ export function ResourcePage<T>({
                       <TableCell className="text-right">
                         <div className="inline-flex gap-1">
                           {canEdit && (
-                            <Button size="icon" variant="ghost" onClick={() => openEdit(row)} aria-label="Editar">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => openEdit(row)}
+                              aria-label="Editar"
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}
@@ -233,13 +290,18 @@ export function ResourcePage<T>({
           <DialogHeader>
             <DialogTitle>{editing ? `Editar ${singular}` : `Nuevo ${singular}`}</DialogTitle>
             <DialogDescription>
-              {editing ? "Actualiza los datos del registro." : "Completa el formulario para crear un registro."}
+              {editing
+                ? "Actualiza los datos del registro."
+                : "Completa el formulario para crear un registro."}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={submit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {fields.map((f) => (
-                <div key={f.key} className={f.type === "textarea" ? "sm:col-span-2 space-y-2" : "space-y-2"}>
+                <div
+                  key={f.key}
+                  className={f.type === "textarea" ? "sm:col-span-2 space-y-2" : "space-y-2"}
+                >
                   <Label htmlFor={f.key}>
                     {f.label}
                     {f.required && <span className="text-destructive"> *</span>}
@@ -254,7 +316,11 @@ export function ResourcePage<T>({
                     />
                   ) : f.type === "select" ? (
                     <Select
-                      value={form[f.key] !== undefined && form[f.key] !== "" ? String(form[f.key]) : undefined}
+                      value={
+                        form[f.key] !== undefined && form[f.key] !== ""
+                          ? String(form[f.key])
+                          : undefined
+                      }
                       onValueChange={(v) => {
                         const opt = f.options.find((o) => String(o.value) === v);
                         setForm((s) => ({ ...s, [f.key]: opt ? opt.value : v }));
@@ -289,10 +355,16 @@ export function ResourcePage<T>({
               ))}
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={submitting}
+              >
                 Cancelar
               </Button>
-              <Button type="submit" variant="brand">
+              <Button type="submit" variant="brand" disabled={submitting}>
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {editing ? "Guardar cambios" : "Crear"}
               </Button>
             </DialogFooter>
@@ -309,11 +381,13 @@ export function ResourcePage<T>({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={submitting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
+              disabled={submitting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
