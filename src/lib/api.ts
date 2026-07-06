@@ -83,7 +83,7 @@ export async function apiFetch<T = unknown>(path: string, init: RequestInit = {}
   if (res.status === 204) return undefined as T;
   const body = await res.json();
   if (!res.ok) {
-    const msg = body?.mensaje ?? body?.title ?? res.statusText;
+    const msg = body?.mensaje ?? body?.detail ?? body?.title ?? res.statusText;
     throw new ApiError(msg, res.status);
   }
   const response = body as ApiResponse<T>;

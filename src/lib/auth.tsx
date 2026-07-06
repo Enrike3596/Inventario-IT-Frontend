@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login: AuthState["login"] = async (email, password) => {
     const res = await apiFetch<LoginResponse>("/api/Auth/login", {
       method: "POST",
-      body: JSON.stringify({ correo: email, contraseña: password }),
+      body: JSON.stringify({ email, password }),
     });
     setToken(res.token);
     const authUser: AuthUser = {
