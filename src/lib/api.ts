@@ -1,6 +1,6 @@
 import type { ApiResponse } from "./types";
 
-const API_URL = import.meta.env.VITE_API_URL as string;
+const RAW_API_URL = import.meta.env.VITE_API_URL as string | undefined;
 const TOKEN_KEY = "sicot.token";
 
 export function getToken(): string | null {
@@ -68,6 +68,13 @@ function deepMapEnums(obj: unknown): unknown {
 }
 
 export async function apiFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
+  if (!RAW_API_URL) {
+    throw new ApiError(
+      "VITE_API_URL no configurada. Crea un archivo .env en la raíz con: VITE_API_URL=http://localhost:5176",
+      0,
+    );
+  }
+  const API_URL = RAW_API_URL.replace(/\/+$/, "");
   const headers = new Headers(init.headers);
   headers.set("Content-Type", "application/json");
   const token = getToken();
