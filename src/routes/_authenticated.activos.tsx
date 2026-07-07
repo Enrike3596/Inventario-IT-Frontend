@@ -39,9 +39,10 @@ function ActivosPage() {
       isLoading={isLoading}
       idKey="idActivo"
       singular="activo"
-      searchKeys={["serial", "marca", "modelo", "observaciones"]}
+      searchKeys={["serial", "marca", "modelo", "codigoActivo", "observaciones"]}
       defaultValues={{}}
       columns={[
+        { header: "Código", key: "codigoActivo", className: "font-mono text-xs" },
         { header: "Serial", key: "serial", className: "font-mono text-xs" },
         { header: "Marca", key: "marca" },
         { header: "Modelo", key: "modelo" },
@@ -59,6 +60,7 @@ function ActivosPage() {
         },
       ]}
       fields={[
+        { key: "codigoActivo", label: "Código activo", type: "text" },
         { key: "serial", label: "Serial", type: "text", required: true },
         { key: "marca", label: "Marca", type: "text", required: true },
         { key: "modelo", label: "Modelo", type: "text", required: true },

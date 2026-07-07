@@ -7,7 +7,10 @@ import type {
   CategoriaActivo,
   Parqueadero,
   OrdenCompra,
+  OrdenCompraDetail,
   Activo,
+  ItemOC,
+  DetalleItemOC,
   Canal,
   Salida,
   AsignacionUsuario,
@@ -21,7 +24,9 @@ export const keys = {
   usuarios: { all: ["usuarios"] as string[] },
   categorias: { all: ["categorias"] as const },
   parqueaderos: { all: ["parqueaderos"] as const },
-  ordenes: { all: ["ordenes"] as const },
+  ordenes: { all: ["ordenes"] as const, detail: (id: number) => ["ordenes", id] as const },
+  itemsOC: { all: ["itemsOC"] as const, porOrden: (id: number) => ["itemsOC", "orden", id] as const },
+  detallesItemOC: { all: ["detallesItemOC"] as const, porItem: (id: number) => ["detallesItemOC", "item", id] as const },
   activos: { all: ["activos"] as const },
   canales: { all: ["canales"] as const },
   salidas: { all: ["salidas"] as const },
@@ -140,6 +145,13 @@ export function useDeleteParqueadero() {
 export function useOrdenesCompra() {
   return useList<OrdenCompra>(keys.ordenes.all, "/api/OrdenesCompra");
 }
+export function useOrdenCompraDetail(id: number) {
+  return useQuery<OrdenCompraDetail>({
+    queryKey: keys.ordenes.detail(id),
+    queryFn: () => apiFetch<OrdenCompraDetail>(`/api/OrdenesCompra/${id}`),
+    enabled: !!id,
+  });
+}
 export function useCreateOrdenCompra() {
   return useCreate<OrdenCompra>(keys.ordenes.all, "/api/OrdenesCompra");
 }
@@ -148,6 +160,89 @@ export function useUpdateOrdenCompra() {
 }
 export function useDeleteOrdenCompra() {
   return useDelete(keys.ordenes.all, "/api/OrdenesCompra");
+}
+export function useConfirmarIngreso() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiFetch<Activo[]>(`/api/OrdenesCompra/${id}/confirmar`, { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.ordenes.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.activos.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.itemsOC.all as unknown as string[] });
+    },
+  });
+}
+
+// ---- Items de OC ----
+export function useItemsOCPorOrden(idOrden: number) {
+  return useQuery<ItemOC[]>({
+    queryKey: keys.itemsOC.porOrden(idOrden),
+    queryFn: () => apiFetch<ItemOC[]>(`/api/ItemsOC/orden/${idOrden}`),
+    enabled: !!idOrden,
+  });
+}
+export function useCreateItemOC() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<ItemOC>) =>
+      apiFetch<ItemOC>("/api/ItemsOC", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.itemsOC.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.ordenes.all as unknown as string[] });
+    },
+  });
+}
+export function useDeleteItemOC() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<void>(`/api/ItemsOC/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.itemsOC.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.ordenes.all as unknown as string[] });
+    },
+  });
+}
+
+// ---- Detalles de Item OC ----
+export function useDetallesItemOCPorItem(idItemOC: number) {
+  return useQuery<DetalleItemOC[]>({
+    queryKey: keys.detallesItemOC.porItem(idItemOC),
+    queryFn: () => apiFetch<DetalleItemOC[]>(`/api/DetallesItemOC/item/${idItemOC}`),
+    enabled: !!idItemOC,
+  });
+}
+export function useCreateDetalleItemOC() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<DetalleItemOC>) =>
+      apiFetch<DetalleItemOC>("/api/DetallesItemOC", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.detallesItemOC.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.itemsOC.all as unknown as string[] });
+    },
+  });
+}
+export function useCreateDetalleItemOCBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { idItemOC: number; seriales: string[] }) =>
+      apiFetch<DetalleItemOC[]>("/api/DetallesItemOC/batch", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.detallesItemOC.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.itemsOC.all as unknown as string[] });
+    },
+  });
+}
+export function useDeleteDetalleItemOC() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<void>(`/api/DetallesItemOC/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.detallesItemOC.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.itemsOC.all as unknown as string[] });
+    },
+  });
 }
 
 // ---- Activos ----
