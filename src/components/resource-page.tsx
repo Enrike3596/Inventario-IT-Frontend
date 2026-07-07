@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Loader2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -112,6 +112,7 @@ export function ResourcePage<T>({
   const [editing, setEditing] = useState<T | null>(null);
   const [open, setOpen] = useState(false);
   const [toDelete, setToDelete] = useState<T | null>(null);
+  const [viewing, setViewing] = useState<T | null>(null);
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -259,6 +260,14 @@ export function ResourcePage<T>({
                       ))}
                       <TableCell className="text-right">
                         <div className="inline-flex gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setViewing(row)}
+                            aria-label="Ver detalles"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           {canEdit && (
                             <Button
                               size="icon"
@@ -399,6 +408,30 @@ export function ResourcePage<T>({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* View details dialog */}
+      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Detalles del {singular}</DialogTitle>
+          </DialogHeader>
+          {viewing && (
+            <div className="space-y-4">
+              {columns.map((c) => (
+                <div key={String(c.key ?? c.header)}>
+                  <Label className="text-muted-foreground text-xs font-medium">{c.header}</Label>
+                  <div className="text-sm mt-0.5">
+                    {c.render ? c.render(viewing) : String(viewing[c.key as keyof T] ?? "—")}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewing(null)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

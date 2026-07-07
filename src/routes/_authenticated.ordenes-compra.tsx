@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, Pencil, Trash2, PackageCheck, ScanLine, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Trash2, PackageCheck, ScanLine, Loader2, Eye, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -60,12 +60,27 @@ function Page() {
   const [ocForm, setOcForm] = useState({ numeroOC: "", proveedor: "", total: 0, observaciones: "" });
   const [submitting, setSubmitting] = useState(false);
 
+  // Items to create with new OC
+  const [createItems, setCreateItems] = useState<Array<{
+    idCategoria: number;
+    nombreProducto: string;
+    marca: string;
+    modelo: string;
+    referencia: string | null;
+    observaciones: string | null;
+    cantidadEsperada: number;
+  }>>([]);
+  const [createItemForm, setCreateItemForm] = useState({
+    idCategoria: "", nombreProducto: "", marca: "", modelo: "",
+    referencia: "", observaciones: "", cantidadEsperada: 1,
+  });
+
   // Delete confirmation
   const [toDelete, setToDelete] = useState<OrdenCompra | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Expanded OC detail
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  // Detail view
+  const [detailView, setDetailView] = useState<OrdenCompra | null>(null);
 
   // ItemOC form
   const [itemFormOpen, setItemFormOpen] = useState(false);
@@ -83,8 +98,32 @@ function Page() {
 
   const openCreateOC = () => {
     setOcForm({ numeroOC: "", proveedor: "", total: 0, observaciones: "" });
+    setCreateItems([]);
+    setCreateItemForm({ idCategoria: "", nombreProducto: "", marca: "", modelo: "", referencia: "", observaciones: "", cantidadEsperada: 1 });
     setEditingOC(null);
     setOcFormOpen(true);
+  };
+
+  const addItemToCreateList = () => {
+    const f = createItemForm;
+    if (!f.idCategoria || !f.nombreProducto || !f.marca || !f.modelo) {
+      toast.error("Categoría, producto, marca y modelo son obligatorios");
+      return;
+    }
+    setCreateItems((prev) => [...prev, {
+      idCategoria: Number(f.idCategoria),
+      nombreProducto: f.nombreProducto,
+      marca: f.marca,
+      modelo: f.modelo,
+      referencia: f.referencia || null,
+      observaciones: f.observaciones || null,
+      cantidadEsperada: f.cantidadEsperada,
+    }]);
+    setCreateItemForm({ idCategoria: "", nombreProducto: "", marca: "", modelo: "", referencia: "", observaciones: "", cantidadEsperada: 1 });
+  };
+
+  const removeItemFromCreateList = (idx: number) => {
+    setCreateItems((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const openEditOC = (oc: OrdenCompra) => {
@@ -104,7 +143,13 @@ function Page() {
         await updateMutation.mutateAsync({ id: editingOC.idOrden, data: ocForm });
         toast.success("Orden actualizada");
       } else {
-        await createMutation.mutateAsync(ocForm);
+        const oc = await createMutation.mutateAsync(ocForm) as any;
+        for (const item of createItems) {
+          await apiFetch("/api/ItemsOC", {
+            method: "POST",
+            body: JSON.stringify({ idOrden: oc.idOrden, ...item }),
+          });
+        }
         toast.success("Orden creada");
       }
       setOcFormOpen(false);
@@ -210,8 +255,6 @@ function Page() {
     return items.filter((i: any) => i.cantidadIngresada < i.cantidadEsperada).length;
   };
 
-  const ocDetail = expandedId ? (ordenes ?? []).find((o) => o.idOrden === expandedId) as any : null;
-
   return (
     <>
       <AppHeader
@@ -232,25 +275,24 @@ function Page() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">
-                  <TableHead className="w-8" />
                   <TableHead>N° OC</TableHead>
                   <TableHead>Proveedor</TableHead>
                   <TableHead>Fecha</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead>Items</TableHead>
-                  <TableHead className="w-40 text-right">Acciones</TableHead>
+                  <TableHead className="w-56 text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-10">
+                    <TableCell colSpan={6} className="text-center py-10">
                       <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ) : !ordenes?.length ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-10">
+                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-10">
                       Sin registros
                     </TableCell>
                   </TableRow>
@@ -260,126 +302,39 @@ function Page() {
                     const totalItems = items.reduce((a: number, i: any) => a + i.cantidadEsperada, 0);
                     const ingresados = items.reduce((a: number, i: any) => a + i.cantidadIngresada, 0);
                     return (
-                      <>
-                        <TableRow key={oc.idOrden} className="hover:bg-muted/30">
-                          <TableCell>
-                            <button
-                              onClick={() => setExpandedId(expandedId === oc.idOrden ? null : oc.idOrden)}
-                              className="p-1 hover:bg-muted rounded"
-                            >
-                              {expandedId === oc.idOrden ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            </button>
-                          </TableCell>
-                          <TableCell className="font-mono text-xs">{oc.numeroOC}</TableCell>
-                          <TableCell>{oc.proveedor}</TableCell>
-                          <TableCell>{new Date(oc.fechaCompra).toLocaleDateString("es-CO")}</TableCell>
-                          <TableCell className="text-right">{money.format(oc.total)}</TableCell>
-                          <TableCell>
-                            <span className="text-xs">
-                              {ingresados}/{totalItems} ingresados
-                            </span>
-                            {pendientes(oc) > 0 && (
-                              <Badge variant="outline" className="ml-2 bg-warning/15 text-warning text-xs">
-                                {pendientes(oc)} pend.
-                              </Badge>
+                      <TableRow key={oc.idOrden} className="hover:bg-muted/30">
+                        <TableCell className="font-mono text-xs">{oc.numeroOC}</TableCell>
+                        <TableCell>{oc.proveedor}</TableCell>
+                        <TableCell>{new Date(oc.fechaCompra).toLocaleDateString("es-CO")}</TableCell>
+                        <TableCell className="text-right">{money.format(oc.total)}</TableCell>
+                        <TableCell>
+                          <span className="text-xs">
+                            {ingresados}/{totalItems} ingresados
+                          </span>
+                          {pendientes(oc) > 0 && (
+                            <Badge variant="outline" className="ml-2 bg-warning/15 text-warning text-xs">
+                              {pendientes(oc)} pend.
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="inline-flex gap-1">
+                            <Button size="icon" variant="ghost" onClick={() => setDetailView(oc)} aria-label="Ver detalles">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {canEdit && (
+                              <Button size="icon" variant="ghost" onClick={() => openEditOC(oc)} aria-label="Editar">
+                                <Pencil className="h-4 w-4" />
+                              </Button>
                             )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="inline-flex gap-1">
-                              {canEdit && (
-                                <Button size="icon" variant="ghost" onClick={() => openEditOC(oc)} aria-label="Editar">
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                              )}
-                              {canDelete && (
-                                <Button size="icon" variant="ghost" onClick={() => setToDelete(oc)} aria-label="Eliminar" className="text-destructive hover:text-destructive">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        {expandedId === oc.idOrden && (
-                          <TableRow key={`${oc.idOrden}-detail`}>
-                            <TableCell colSpan={7} className="bg-muted/20 p-4">
-                              <div className="space-y-4">
-                                <div className="flex gap-2 items-center">
-                                  <h4 className="text-sm font-semibold">Ítems de la orden</h4>
-                                  {canCreate && (
-                                    <Button size="sm" variant="outline" onClick={() => openAddItem(oc.idOrden)}>
-                                      <Plus className="h-3 w-3" /> Agregar ítem
-                                    </Button>
-                                  )}
-                                  {canEdit && ingresados > 0 && ingresados === totalItems && (
-                                    <Button size="sm" variant="brand" onClick={() => confirmarOC(oc.idOrden)}>
-                                      <PackageCheck className="h-3 w-3" /> Confirmar ingreso
-                                    </Button>
-                                  )}
-                                </div>
-
-                                {items.length === 0 ? (
-                                  <p className="text-xs text-muted-foreground">No hay ítems registrados.</p>
-                                ) : (
-                                  <div className="border rounded-lg overflow-hidden">
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow className="bg-muted/40">
-                                          <TableHead>Producto</TableHead>
-                                          <TableHead>Categoría</TableHead>
-                                          <TableHead>Marca</TableHead>
-                                          <TableHead>Modelo</TableHead>
-                                          <TableHead>Esperados</TableHead>
-                                          <TableHead>Seriales</TableHead>
-                                          <TableHead className="w-32 text-right">Acciones</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {items.map((item: any) => {
-                                          const detalles = item.detallesItem ?? [];
-                                          return (
-                                            <TableRow key={item.idItemOC} className="hover:bg-muted/30">
-                                              <TableCell className="font-medium">{item.nombreProducto}</TableCell>
-                                              <TableCell>{item.nombreCategoria ?? "—"}</TableCell>
-                                              <TableCell>{item.marca}</TableCell>
-                                              <TableCell>{item.modelo}</TableCell>
-                                              <TableCell>{item.cantidadEsperada}</TableCell>
-                                              <TableCell>
-                                                <div className="flex flex-wrap gap-1">
-                                                  {detalles.map((d: any) => (
-                                                    <Badge
-                                                      key={d.idDetalleItemOC}
-                                                      variant="outline"
-                                                      className={d.procesado ? "bg-success/15 text-success" : "bg-muted"}
-                                                    >
-                                                      <span className="font-mono text-xs">{d.serial}</span>
-                                                    </Badge>
-                                                  ))}
-                                                  {canCreate && !item.todosProcesados && (
-                                                    <Button size="sm" variant="ghost" className="h-5 text-xs" onClick={() => openAddSerials(item.idItemOC, item.nombreProducto)}>
-                                                      <ScanLine className="h-3 w-3" /> Agregar serial
-                                                    </Button>
-                                                  )}
-                                                </div>
-                                              </TableCell>
-                                              <TableCell className="text-right">
-                                                {canDelete && (
-                                                  <Button size="icon" variant="ghost" className="h-6 w-6" aria-label="Eliminar item">
-                                                    <Trash2 className="h-3 w-3" />
-                                                  </Button>
-                                                )}
-                                              </TableCell>
-                                            </TableRow>
-                                          );
-                                        })}
-                                      </TableBody>
-                                    </Table>
-                                  </div>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </>
+                            {canDelete && (
+                              <Button size="icon" variant="ghost" onClick={() => setToDelete(oc)} aria-label="Eliminar" className="text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
                     );
                   })
                 )}
@@ -391,12 +346,13 @@ function Page() {
 
       {/* OC Create/Edit Dialog */}
       <Dialog open={ocFormOpen} onOpenChange={setOcFormOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className={editingOC ? "max-w-lg" : "max-w-3xl"}>
           <DialogHeader>
             <DialogTitle>{editingOC ? "Editar orden" : "Nueva orden de compra"}</DialogTitle>
             <DialogDescription>Ingresa los datos de la orden de compra.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={submitOC} className="space-y-4">
+          <form onSubmit={submitOC} className="space-y-6">
+            {/* OC fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="numeroOC">N° OC <span className="text-destructive">*</span></Label>
@@ -415,14 +371,201 @@ function Page() {
                 <Textarea id="observaciones" value={ocForm.observaciones} onChange={(e) => setOcForm((s) => ({ ...s, observaciones: e.target.value }))} rows={3} />
               </div>
             </div>
+
+            {/* Items section — only for new OC */}
+            {!editingOC && (
+              <>
+                <hr />
+                <div>
+                  <h4 className="text-sm font-semibold mb-3">Ítems de la orden</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+                    <div className="space-y-2">
+                      <Label>Categoría <span className="text-destructive">*</span></Label>
+                      <Select value={createItemForm.idCategoria || undefined} onValueChange={(v) => setCreateItemForm((s) => ({ ...s, idCategoria: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger>
+                        <SelectContent>
+                          {(categorias ?? []).map((c) => (
+                            <SelectItem key={c.idCategoria} value={String(c.idCategoria)}>{c.nombre}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nombre producto <span className="text-destructive">*</span></Label>
+                      <Input value={createItemForm.nombreProducto} onChange={(e) => setCreateItemForm((s) => ({ ...s, nombreProducto: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Marca <span className="text-destructive">*</span></Label>
+                      <Input value={createItemForm.marca} onChange={(e) => setCreateItemForm((s) => ({ ...s, marca: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Modelo <span className="text-destructive">*</span></Label>
+                      <Input value={createItemForm.modelo} onChange={(e) => setCreateItemForm((s) => ({ ...s, modelo: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Referencia</Label>
+                      <Input value={createItemForm.referencia} onChange={(e) => setCreateItemForm((s) => ({ ...s, referencia: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cant. esperada</Label>
+                      <Input type="number" min={1} value={createItemForm.cantidadEsperada} onChange={(e) => setCreateItemForm((s) => ({ ...s, cantidadEsperada: Number(e.target.value) }))} />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>Observaciones del ítem</Label>
+                      <Textarea value={createItemForm.observaciones} onChange={(e) => setCreateItemForm((s) => ({ ...s, observaciones: e.target.value }))} rows={2} />
+                    </div>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={addItemToCreateList}>
+                    <Plus className="h-3 w-3" /> Agregar ítem
+                  </Button>
+                </div>
+
+                {/* Added items list */}
+                {createItems.length > 0 && (
+                  <div className="border rounded-lg divide-y max-h-48 overflow-y-auto">
+                    {createItems.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                        <div className="min-w-0 flex-1">
+                          <span className="font-medium">{item.nombreProducto}</span>
+                          <span className="text-muted-foreground text-xs ml-2">{item.marca} / {item.modelo} × {item.cantidadEsperada}</span>
+                        </div>
+                        <button type="button" onClick={() => removeItemFromCreateList(i)} className="text-destructive hover:text-destructive/80 shrink-0" aria-label="Quitar ítem">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOcFormOpen(false)} disabled={submitting}>Cancelar</Button>
               <Button type="submit" variant="brand" disabled={submitting}>
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {editingOC ? "Guardar cambios" : "Crear"}
+                {editingOC ? "Guardar cambios" : "Crear orden"}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail view Dialog */}
+      <Dialog open={!!detailView} onOpenChange={(o) => !o && setDetailView(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Detalles de la orden</DialogTitle>
+            <DialogDescription>Información completa y gestión de ítems.</DialogDescription>
+          </DialogHeader>
+          {detailView && (() => {
+            const items = (detailView as any).itemsOC ?? [];
+            const totalItems = items.reduce((a: number, i: any) => a + i.cantidadEsperada, 0);
+            const ingresados = items.reduce((a: number, i: any) => a + i.cantidadIngresada, 0);
+            return (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">N° OC</Label>
+                    <p>{detailView.numeroOC}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Proveedor</Label>
+                    <p>{detailView.proveedor}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Fecha</Label>
+                    <p>{new Date(detailView.fechaCompra).toLocaleDateString("es-CO")}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Total</Label>
+                    <p>{money.format(detailView.total)}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-muted-foreground text-xs">Observaciones</Label>
+                    <p>{detailView.observaciones || "—"}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex gap-2 items-center mb-3">
+                    <h4 className="text-sm font-semibold">Ítems de la orden</h4>
+                    {canCreate && (
+                      <Button size="sm" variant="outline" onClick={() => { const id = detailView.idOrden; setDetailView(null); openAddItem(id); }}>
+                        <Plus className="h-3 w-3" /> Agregar ítem
+                      </Button>
+                    )}
+                    {canEdit && ingresados > 0 && ingresados === totalItems && (
+                      <Button size="sm" variant="brand" onClick={() => { const id = detailView.idOrden; setDetailView(null); confirmarOC(id); }}>
+                        <PackageCheck className="h-3 w-3" /> Confirmar ingreso
+                      </Button>
+                    )}
+                  </div>
+
+                  {items.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No hay ítems registrados.</p>
+                  ) : (
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/40">
+                            <TableHead>Producto</TableHead>
+                            <TableHead>Categoría</TableHead>
+                            <TableHead>Marca</TableHead>
+                            <TableHead>Modelo</TableHead>
+                            <TableHead>Esperados</TableHead>
+                            <TableHead>Seriales</TableHead>
+                            <TableHead className="w-32 text-right">Acciones</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {items.map((item: any) => {
+                            const detalles = item.detallesItem ?? [];
+                            return (
+                              <TableRow key={item.idItemOC} className="hover:bg-muted/30">
+                                <TableCell className="font-medium">{item.nombreProducto}</TableCell>
+                                <TableCell>{item.nombreCategoria ?? "—"}</TableCell>
+                                <TableCell>{item.marca}</TableCell>
+                                <TableCell>{item.modelo}</TableCell>
+                                <TableCell>{item.cantidadEsperada}</TableCell>
+                                <TableCell>
+                                  <div className="flex flex-wrap gap-1">
+                                    {detalles.map((d: any) => (
+                                      <Badge
+                                        key={d.idDetalleItemOC}
+                                        variant="outline"
+                                        className={d.procesado ? "bg-success/15 text-success" : "bg-muted"}
+                                      >
+                                        <span className="font-mono text-xs">{d.serial}</span>
+                                      </Badge>
+                                    ))}
+                                    {canCreate && !item.todosProcesados && (
+                                      <Button size="sm" variant="ghost" className="h-5 text-xs" onClick={() => { const id = item.idItemOC; const nombre = item.nombreProducto; setDetailView(null); openAddSerials(id, nombre); }}>
+                                        <ScanLine className="h-3 w-3" /> Agregar serial
+                                      </Button>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {canDelete && (
+                                    <Button size="icon" variant="ghost" className="h-6 w-6" aria-label="Eliminar item">
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailView(null)}>Cerrar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
