@@ -407,7 +407,7 @@ function Page() {
 
       {/* OC Create/Edit Dialog */}
       <Dialog open={ocFormOpen} onOpenChange={setOcFormOpen}>
-        <DialogContent className={editingOC ? "max-w-lg" : "max-w-3xl"}>
+        <DialogContent className={editingOC ? "max-w-lg" : "w-full max-w-2xl max-h-[90vh] overflow-y-auto"}>
           <DialogHeader>
             <DialogTitle>{editingOC ? "Editar orden" : "Nueva orden de compra"}</DialogTitle>
             <DialogDescription>Ingresa los datos de la orden de compra.</DialogDescription>
