@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Activity, Box, Cpu, ShieldCheck, TrendingUp, Users, Loader2 } from "lucide-react";
-import { AppHeader } from "@/components/app-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useActivos, useUsuarios, useAsignaciones, useMovimientos } from "@/lib/queries";
@@ -54,10 +53,6 @@ function Dashboard() {
 
   return (
     <>
-      <AppHeader
-        title={`Hola, ${user?.nombre ?? ""}`}
-        subtitle={`Panel general — ${user ? ROLE_LABEL[user.role] : ""}`}
-      />
       <main className="flex-1 p-4 sm:p-6 space-y-6">
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((s) => (

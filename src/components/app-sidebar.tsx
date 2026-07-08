@@ -24,7 +24,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth";
@@ -75,10 +74,6 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <div className="flex items-center justify-center px-4 py-3 border-b border-sidebar-border">
-        <SidebarTrigger />
-      </div>
-
       <SidebarContent>
         <SidebarGroup>
           {!collapsed && <SidebarGroupLabel>Inventario</SidebarGroupLabel>}
