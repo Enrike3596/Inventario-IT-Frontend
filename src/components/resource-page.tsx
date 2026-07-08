@@ -87,6 +87,8 @@ interface ResourcePageProps<T> {
   loadingDelete?: boolean;
   transformCreate?: (data: Partial<T>) => Partial<T>;
   transformUpdate?: (data: Partial<T>) => Partial<T>;
+  filters?: ReactNode;
+  filterFn?: (item: T) => boolean;
 }
 
 export function ResourcePage<T>({
@@ -108,6 +110,8 @@ export function ResourcePage<T>({
   loadingDelete,
   transformCreate,
   transformUpdate,
+  filters,
+  filterFn,
 }: ResourcePageProps<T>) {
   const { can } = useAuth();
   const [query, setQuery] = useState("");
@@ -121,16 +125,20 @@ export function ResourcePage<T>({
   const [submitting, setSubmitting] = useState(false);
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return data;
+    let result = data;
+    if (filterFn) {
+      result = result.filter(filterFn);
+    }
+    if (!query.trim()) return result;
     const q = query.toLowerCase();
-    return data.filter((r) =>
+    return result.filter((r) =>
       searchKeys.some((k) =>
         String(r[k] ?? "")
           .toLowerCase()
           .includes(q),
       ),
     );
-  }, [data, query, searchKeys]);
+  }, [data, query, searchKeys, filterFn]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -230,6 +238,7 @@ export function ResourcePage<T>({
                 className="pl-9"
               />
             </div>
+            {filters}
             <span className="text-xs text-muted-foreground ml-auto">
               {filtered.length} registro{filtered.length === 1 ? "" : "s"}
             </span>

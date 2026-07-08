@@ -1,6 +1,10 @@
+import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourcePage } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   useParqueaderos,
   useCreateParqueadero,
@@ -22,6 +26,13 @@ function Page() {
   const updateMutation = useUpdateParqueadero();
   const deleteMutation = useDeleteParqueadero();
 
+  const [estadoFilter, setEstadoFilter] = useState("all");
+
+  const filterFn = useMemo(() => {
+    if (estadoFilter === "all") return undefined;
+    return (item: Parqueadero) => item.estado === estadoFilter;
+  }, [estadoFilter]);
+
   return (
     <ResourcePage<Parqueadero>
       title="Parqueaderos"
@@ -31,6 +42,22 @@ function Page() {
       idKey="idParqueadero"
       singular="parqueadero"
       searchKeys={["nombre", "ubicacion"]}
+      filterFn={filterFn}
+      filters={
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Estado:</span>
+          <Select value={estadoFilter} onValueChange={setEstadoFilter}>
+            <SelectTrigger className="h-9 w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="Activo">Activo</SelectItem>
+              <SelectItem value="Inactivo">Inactivo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      }
       defaultValues={{}}
       columns={[
         { header: "Nombre", key: "nombre" },

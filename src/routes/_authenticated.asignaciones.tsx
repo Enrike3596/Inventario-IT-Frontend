@@ -1,6 +1,10 @@
+import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourcePage } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   useAsignaciones,
   useCreateAsignacion,
@@ -26,6 +30,13 @@ function Page() {
   const updateMutation = useUpdateAsignacion();
   const deleteMutation = useDeleteAsignacion();
 
+  const [estadoFilter, setEstadoFilter] = useState("all");
+
+  const filterFn = useMemo(() => {
+    if (estadoFilter === "all") return undefined;
+    return (item: AsignacionUsuario) => item.estadoAsignacion === estadoFilter;
+  }, [estadoFilter]);
+
   return (
     <ResourcePage<AsignacionUsuario>
       title="Asignaciones"
@@ -35,6 +46,22 @@ function Page() {
       idKey="idAsignacion"
       singular="asignación"
       searchKeys={["estadoAsignacion"]}
+      filterFn={filterFn}
+      filters={
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Estado:</span>
+          <Select value={estadoFilter} onValueChange={setEstadoFilter}>
+            <SelectTrigger className="h-9 w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="Activa">Activa</SelectItem>
+              <SelectItem value="Finalizada">Finalizada</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      }
       defaultValues={{}}
       columns={[
         {

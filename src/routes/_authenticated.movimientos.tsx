@@ -1,6 +1,10 @@
+import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourcePage } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { useMovimientos, useActivos } from "@/lib/queries";
 import type { Movimiento } from "@/lib/types";
 
@@ -16,9 +20,18 @@ const tipoTint: Record<string, string> = {
   Devolucion: "bg-accent/40 text-accent-foreground border-accent",
 };
 
+const TIPOS_MOVIMIENTO = ["Entrada", "Salida", "Asignacion", "Devolucion"] as const;
+
 function Page() {
   const { data: movimientos, isLoading } = useMovimientos();
   const { data: activos } = useActivos();
+
+  const [tipoFilter, setTipoFilter] = useState("all");
+
+  const filterFn = useMemo(() => {
+    if (tipoFilter === "all") return undefined;
+    return (item: Movimiento) => item.tipoMovimiento === tipoFilter;
+  }, [tipoFilter]);
 
   return (
     <ResourcePage<Movimiento>
@@ -29,6 +42,23 @@ function Page() {
       idKey="idHistorial"
       singular="movimiento"
       searchKeys={["tipoMovimiento"]}
+      filterFn={filterFn}
+      filters={
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Tipo:</span>
+          <Select value={tipoFilter} onValueChange={setTipoFilter}>
+            <SelectTrigger className="h-9 w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {TIPOS_MOVIMIENTO.map((t) => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      }
       defaultValues={{}}
       columns={[
         { header: "Fecha", render: (m) => new Date(m.fechaMovimiento).toLocaleDateString("es-CO") },

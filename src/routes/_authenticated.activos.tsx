@@ -1,6 +1,10 @@
+import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourcePage } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   useActivos,
   useCreateActivo,
@@ -23,6 +27,8 @@ const estadoTint: Record<string, string> = {
   DadoDeBaja: "bg-destructive/15 text-destructive border-destructive/30",
 };
 
+const ESTADOS_ACTIVO = ["Disponible", "Asignado", "EnMantenimiento", "DadoDeBaja"] as const;
+
 function ActivosPage() {
   const { data: activos, isLoading } = useActivos();
   const { data: categorias } = useCategorias();
@@ -30,6 +36,13 @@ function ActivosPage() {
   const createMutation = useCreateActivo();
   const updateMutation = useUpdateActivo();
   const deleteMutation = useDeleteActivo();
+
+  const [estadoFilter, setEstadoFilter] = useState("all");
+
+  const filterFn = useMemo(() => {
+    if (estadoFilter === "all") return undefined;
+    return (item: Activo) => item.estadoActivo === estadoFilter;
+  }, [estadoFilter]);
 
   return (
     <ResourcePage<Activo>
@@ -40,6 +53,23 @@ function ActivosPage() {
       idKey="idActivo"
       singular="activo"
       searchKeys={["serial", "marca", "modelo", "codigoActivo", "observaciones"]}
+      filterFn={filterFn}
+      filters={
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Estado:</span>
+          <Select value={estadoFilter} onValueChange={setEstadoFilter}>
+            <SelectTrigger className="h-9 w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {ESTADOS_ACTIVO.map((e) => (
+                <SelectItem key={e} value={e}>{e}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      }
       defaultValues={{}}
       columns={[
         { header: "Código", key: "codigoActivo", className: "font-mono text-xs" },

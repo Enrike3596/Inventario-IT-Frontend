@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, Pencil, Trash2, PackageCheck, ScanLine, Loader2, Eye, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Trash2, PackageCheck, ScanLine, Loader2, Eye, X, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -255,10 +255,31 @@ function Page() {
     return items.filter((i: any) => i.cantidadIngresada < i.cantidadEsperada).length;
   };
 
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const PAGE_SIZES = [10, 20, 30, 50, 100] as const;
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
-  const ocList = ordenes ?? [];
+
+  const ocList = useMemo(() => {
+    const list = ordenes ?? [];
+    const q = query.toLowerCase().trim();
+    let filtered = list;
+    if (q) {
+      filtered = filtered.filter(
+        (oc) =>
+          oc.numeroOC.toLowerCase().includes(q) ||
+          oc.proveedor.toLowerCase().includes(q) ||
+          new Date(oc.fechaCompra).toLocaleDateString("es-CO").includes(q),
+      );
+    }
+    if (statusFilter === "pending") {
+      filtered = filtered.filter((oc) => pendientes(oc) > 0);
+    } else if (statusFilter === "completed") {
+      filtered = filtered.filter((oc) => pendientes(oc) === 0);
+    }
+    return filtered;
+  }, [ordenes, query, statusFilter]);
   const totalPages = Math.max(1, Math.ceil(ocList.length / pageSize));
   const safePage = Math.min(page, totalPages);
   const paginatedOC = useMemo(
@@ -274,13 +295,42 @@ function Page() {
         actions={
           canCreate && (
             <Button onClick={openCreateOC} variant="brand" size="sm">
-              <Plus className="h-4 w-4" /> Nueva OC
+              <Plus className="h-4 w-4" /> Nuevo
             </Button>
           )
         }
       />
 
       <main className="flex-1 p-4 sm:p-6 space-y-4">
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+                placeholder="Buscar por N° OC, proveedor o fecha..."
+                className="pl-9"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Estado:</span>
+              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+                <SelectTrigger className="h-9 w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="pending">Con pendientes</SelectItem>
+                  <SelectItem value="completed">Completadas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <span className="text-xs text-muted-foreground ml-auto">
+              {ocList.length} registro{ocList.length === 1 ? "" : "s"}
+            </span>
+          </div>
+        </Card>
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
