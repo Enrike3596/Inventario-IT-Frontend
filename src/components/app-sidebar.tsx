@@ -26,7 +26,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useAuth, ROLE_LABEL } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
 
@@ -55,7 +55,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
 
   const renderItems = (items: Item[]) =>
     items.map((item) => {
@@ -104,12 +104,6 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
-        {user && !collapsed && (
-          <div className="mb-2 px-1">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">{user.nombre}</p>
-            <p className="text-xs text-sidebar-foreground/60 truncate">{ROLE_LABEL[user.role]}</p>
-          </div>
-        )}
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={logout} tooltip="Cerrar sesión">
