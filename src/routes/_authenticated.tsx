@@ -64,11 +64,11 @@ function HeaderBar() {
           </div>
         </div>
 
-        <div className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 items-center justify-center">
+        <div className="pointer-events-none absolute inset-y-0 left-1/2 w-44 -translate-x-1/2 sm:w-64 lg:w-80">
           <img
             src="/Logo INDIGO ORG. 2.png"
             alt="Indigo ORG"
-            className="h-8 sm:h-9 object-contain shrink-0"
+            className="h-full w-full object-contain object-center"
           />
         </div>
 
