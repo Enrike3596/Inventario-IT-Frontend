@@ -72,8 +72,8 @@ function ActivosPage() {
       }
       defaultValues={{}}
       columns={[
-        { header: "Código", key: "codigoActivo", className: "font-mono text-xs" },
-        { header: "Serial", key: "serial", className: "font-mono text-xs" },
+        { header: "Código", key: "codigoActivo" },
+        { header: "Serial", key: "serial" },
         { header: "Marca", key: "marca" },
         { header: "Modelo", key: "modelo" },
         {

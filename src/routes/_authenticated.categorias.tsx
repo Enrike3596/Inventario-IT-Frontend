@@ -58,7 +58,6 @@ function Page() {
       }
       defaultValues={{}}
       columns={[
-        { header: "ID", key: "idCategoria", className: "w-16 font-mono text-xs" },
         { header: "Nombre", key: "nombre" },
         {
           header: "Estado",
