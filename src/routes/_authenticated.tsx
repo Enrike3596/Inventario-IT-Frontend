@@ -57,14 +57,14 @@ function HeaderBar() {
             </TooltipContent>
           </Tooltip>
 
-          <div className="min-w-0">
+          <div className="min-w-0 hidden sm:block">
             <h1 className="font-display text-xl sm:text-2xl font-semibold text-foreground truncate">
               {greeting}
             </h1>
           </div>
         </div>
 
-        <div className="pointer-events-none absolute inset-y-0 left-1/2 w-44 -translate-x-1/2 max-sm:hidden sm:w-64 lg:w-80">
+        <div className="pointer-events-none absolute inset-y-0 left-1/2 w-44 -translate-x-1/2 sm:w-64 lg:w-80">
           <img
             src="/Logo INDIGO ORG. 2.png"
             alt="Indigo ORG"

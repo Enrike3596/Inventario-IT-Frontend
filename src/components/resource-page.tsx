@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 const PAGE_SIZES = [10, 20, 30, 50, 100] as const;
 
@@ -66,6 +67,7 @@ export interface Column<T> {
   key?: keyof T;
   render?: (row: T) => ReactNode;
   className?: string;
+  hideOnMobile?: boolean;
 }
 
 interface ResourcePageProps<T> {
@@ -228,8 +230,8 @@ export function ResourcePage<T>({
 
       <main className="flex-1 p-4 sm:p-6 space-y-4">
         <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="relative w-full sm:flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={query}
@@ -238,20 +240,25 @@ export function ResourcePage<T>({
                 className="pl-9"
               />
             </div>
-            {filters}
-            <span className="text-xs text-muted-foreground ml-auto">
+            {filters && (
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                {filters}
+              </div>
+            )}
+            <span className="text-xs text-muted-foreground sm:ml-auto whitespace-nowrap">
               {filtered.length} registro{filtered.length === 1 ? "" : "s"}
             </span>
           </div>
         </Card>
 
-        <Card className="overflow-hidden">
+        {/* Desktop: table view */}
+        <Card className="overflow-hidden hidden sm:block">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">
                   {columns.map((c, i) => (
-                    <TableHead key={i} className={c.className}>
+                    <TableHead key={i} className={cn(c.className, c.hideOnMobile && "hidden md:table-cell")}>
                       {c.header}
                     </TableHead>
                   ))}
@@ -278,7 +285,7 @@ export function ResourcePage<T>({
                   paginated.map((row) => (
                     <TableRow key={String(row[idKey])} className="hover:bg-muted/30">
                       {columns.map((c, i) => (
-                        <TableCell key={i} className={c.className}>
+                        <TableCell key={i} className={cn(c.className, c.hideOnMobile && "hidden md:table-cell")}>
                           {c.render ? c.render(row) : String(row[c.key as keyof T] ?? "")}
                         </TableCell>
                       ))}
@@ -323,10 +330,55 @@ export function ResourcePage<T>({
           </div>
         </Card>
 
+        {/* Mobile: card view */}
+        <div className="sm:hidden space-y-3">
+          {isLoading ? (
+            <Card className="p-6">
+              <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+            </Card>
+          ) : filtered.length === 0 ? (
+            <Card className="p-6">
+              <p className="text-center text-sm text-muted-foreground">Sin registros</p>
+            </Card>
+          ) : (
+            paginated.map((row) => (
+              <Card key={String(row[idKey])} className="p-3">
+                <div className="space-y-2">
+                  {columns.filter((c) => !c.hideOnMobile).map((c) => (
+                    <div key={String(c.key ?? c.header)} className="flex items-start justify-between gap-2">
+                      <span className="text-xs text-muted-foreground font-medium shrink-0 w-28 leading-5">
+                        {c.header}
+                      </span>
+                      <span className="text-sm text-right leading-5">
+                        {c.render ? c.render(row) : String(row[c.key as keyof T] ?? "—")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-end gap-1 pt-3 mt-3 border-t">
+                  <Button size="sm" variant="ghost" onClick={() => setViewing(row)}>
+                    <Eye className="h-3.5 w-3.5 mr-1" /> Ver
+                  </Button>
+                  {canEdit && (
+                    <Button size="sm" variant="ghost" onClick={() => openEdit(row)}>
+                      <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                    </Button>
+                  )}
+                  {canDelete && (
+                    <Button size="sm" variant="ghost" onClick={() => setToDelete(row)} className="text-destructive hover:text-destructive">
+                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+
         {filtered.length > 0 && (
-          <div className="flex items-center justify-between gap-4 px-1">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Filas por página:</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Filas por página:</span>
               <Select
                 value={String(pageSize)}
                 onValueChange={(v) => {
@@ -348,7 +400,7 @@ export function ResourcePage<T>({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
                 Página {safePage} de {totalPages}
               </span>
               <Button

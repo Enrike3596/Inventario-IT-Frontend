@@ -303,8 +303,8 @@ function Page() {
 
       <main className="flex-1 p-4 sm:p-6 space-y-4">
         <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="relative w-full sm:flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={query}
@@ -313,7 +313,7 @@ function Page() {
                 className="pl-9"
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <span className="text-xs text-muted-foreground">Estado:</span>
               <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
                 <SelectTrigger className="h-9 w-36">
@@ -326,12 +326,13 @@ function Page() {
                 </SelectContent>
               </Select>
             </div>
-            <span className="text-xs text-muted-foreground ml-auto">
+            <span className="text-xs text-muted-foreground sm:ml-auto whitespace-nowrap">
               {ocList.length} registro{ocList.length === 1 ? "" : "s"}
             </span>
           </div>
         </Card>
-        <Card className="overflow-hidden">
+        {/* Desktop: table view */}
+        <Card className="overflow-hidden hidden sm:block">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -404,10 +405,77 @@ function Page() {
           </div>
         </Card>
 
+        {/* Mobile: card view */}
+        <div className="sm:hidden space-y-3">
+          {isLoading ? (
+            <Card className="p-6">
+              <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+            </Card>
+          ) : !ocList.length ? (
+            <Card className="p-6">
+              <p className="text-center text-sm text-muted-foreground">Sin registros</p>
+            </Card>
+          ) : (
+            paginatedOC.map((oc) => {
+              const items = (oc as any).itemsOC ?? [];
+              const totalItems = items.reduce((a: number, i: any) => a + i.cantidadEsperada, 0);
+              const ingresados = items.reduce((a: number, i: any) => a + i.cantidadIngresada, 0);
+              return (
+                <Card key={oc.idOrden} className="p-3">
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs text-muted-foreground font-medium shrink-0 w-28 leading-5">N° OC</span>
+                      <span className="text-sm text-right font-mono leading-5">{oc.numeroOC}</span>
+                    </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs text-muted-foreground font-medium shrink-0 w-28 leading-5">Proveedor</span>
+                      <span className="text-sm text-right leading-5">{oc.proveedor}</span>
+                    </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs text-muted-foreground font-medium shrink-0 w-28 leading-5">Fecha</span>
+                      <span className="text-sm text-right leading-5">{new Date(oc.fechaCompra).toLocaleDateString("es-CO")}</span>
+                    </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs text-muted-foreground font-medium shrink-0 w-28 leading-5">Total</span>
+                      <span className="text-sm text-right leading-5">{money.format(oc.total)}</span>
+                    </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs text-muted-foreground font-medium shrink-0 w-28 leading-5">Items</span>
+                      <span className="text-sm text-right leading-5">
+                        {ingresados}/{totalItems} ingresados
+                        {pendientes(oc) > 0 && (
+                          <Badge variant="outline" className="ml-1 bg-warning/15 text-warning text-xs">
+                            {pendientes(oc)} pend.
+                          </Badge>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-1 pt-3 mt-3 border-t">
+                    <Button size="sm" variant="ghost" onClick={() => setDetailView(oc)}>
+                      <Eye className="h-3.5 w-3.5 mr-1" /> Ver
+                    </Button>
+                    {canEdit && (
+                      <Button size="sm" variant="ghost" onClick={() => openEditOC(oc)}>
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button size="sm" variant="ghost" onClick={() => setToDelete(oc)} className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              );
+            })
+          )}
+        </div>
+
         {ocList.length > 0 && (
-          <div className="flex items-center justify-between gap-4 px-1">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Filas por página:</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Filas por página:</span>
               <Select
                 value={String(pageSize)}
                 onValueChange={(v) => {
@@ -429,7 +497,7 @@ function Page() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
                 Página {safePage} de {totalPages}
               </span>
               <Button
