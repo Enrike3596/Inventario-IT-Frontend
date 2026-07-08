@@ -24,6 +24,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth";
@@ -75,11 +76,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <div className="flex items-center justify-center px-4 py-3 border-b border-sidebar-border">
-        <img
-          src="/Logo INDIGO ORG. 2.png"
-          alt="Indigo ORG"
-          className={collapsed ? "h-7 w-7 object-contain" : "h-10 object-contain"}
-        />
+        <SidebarTrigger />
       </div>
 
       <SidebarContent>
