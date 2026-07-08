@@ -46,11 +46,12 @@ function AuthPage() {
       <div className="relative hidden lg:flex flex-col justify-between p-12 overflow-hidden bg-gradient-brand text-primary-foreground">
         <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_20%,white,transparent_40%),radial-gradient(circle_at_80%_70%,var(--brand-teal),transparent_50%)]" />
         <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-white/15 backdrop-blur grid place-items-center font-display font-bold">
-              S
-            </div>
-            <span className="font-display text-xl font-semibold tracking-tight">Indigo</span>
+          <div className="flex justify-center">
+            <img
+              src="/Logo%20INDIGO%20ORG.%202.png"
+              alt="INDIGO ORG"
+              className="h-48 object-contain"
+            />
           </div>
         </div>
         <div className="relative z-10 max-w-lg">
@@ -61,10 +62,6 @@ function AuthPage() {
             Activos, asignaciones, órdenes de compra y movimientos operativos en una sola plataforma
             corporativa.
           </p>
-          <div className="mt-8 flex items-center gap-3 text-sm text-white/80">
-            <ShieldCheck className="h-5 w-5" />
-            <span>Acceso con roles: Super Admin · Coordinador · Agente Soporte TI</span>
-          </div>
         </div>
         <p className="relative z-10 text-xs text-white/70">
           © {new Date().getFullYear()} Indigo · Sistema Corporativo de Inventario TI

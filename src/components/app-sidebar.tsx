@@ -74,20 +74,12 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <div className="flex items-center gap-2 px-4 py-4 border-b border-sidebar-border">
-        <div className="h-9 w-9 rounded-lg bg-gradient-brand grid place-items-center font-display font-bold text-primary-foreground shadow-glow">
-          S
-        </div>
-        {!collapsed && (
-          <div className="flex flex-col">
-            <span className="font-display font-semibold text-sidebar-foreground leading-none">
-              Indigo
-            </span>
-            <span className="text-[10px] uppercase tracking-wider text-sidebar-foreground/60 mt-0.5">
-              Inventario TI
-            </span>
-          </div>
-        )}
+      <div className="flex items-center justify-center px-4 py-3 border-b border-sidebar-border">
+        <img
+          src="/Logo INDIGO ORG. 2.png"
+          alt="Indigo ORG"
+          className={collapsed ? "h-7 w-7 object-contain" : "h-10 object-contain"}
+        />
       </div>
 
       <SidebarContent>
