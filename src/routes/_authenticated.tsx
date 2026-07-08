@@ -64,7 +64,7 @@ function HeaderBar() {
           </div>
         </div>
 
-        <div className="pointer-events-none absolute inset-y-0 left-1/2 w-44 -translate-x-1/2 sm:w-64 lg:w-80">
+        <div className="pointer-events-none absolute inset-y-0 left-1/2 w-44 -translate-x-1/2 max-sm:hidden sm:w-64 lg:w-80">
           <img
             src="/Logo INDIGO ORG. 2.png"
             alt="Indigo ORG"

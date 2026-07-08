@@ -52,10 +52,18 @@ const organizacion: Item[] = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, setOpen, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { logout } = useAuth();
+
+  const handleNavigate = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    } else {
+      setOpen(false);
+    }
+  };
 
   const renderItems = (items: Item[]) =>
     items.map((item) => {
@@ -63,7 +71,7 @@ export function AppSidebar() {
       return (
         <SidebarMenuItem key={item.url}>
           <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
-            <Link to={item.url} className="flex items-center gap-3">
+            <Link to={item.url} onClick={handleNavigate} className="flex items-center gap-3">
               <item.icon className="h-4 w-4" />
               {!collapsed && <span>{item.title}</span>}
             </Link>
