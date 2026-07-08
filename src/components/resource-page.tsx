@@ -1,5 +1,5 @@
-import { useMemo, useState, type ReactNode } from "react";
-import { Plus, Pencil, Trash2, Search, Loader2, Eye } from "lucide-react";
+import { useMemo, useState, useEffect, type ReactNode } from "react";
+import { Plus, Pencil, Trash2, Search, Loader2, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
+
+const PAGE_SIZES = [10, 20, 30, 50, 100] as const;
 
 export type FieldDef =
   | {
@@ -109,6 +111,8 @@ export function ResourcePage<T>({
 }: ResourcePageProps<T>) {
   const { can } = useAuth();
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
   const [editing, setEditing] = useState<T | null>(null);
   const [open, setOpen] = useState(false);
   const [toDelete, setToDelete] = useState<T | null>(null);
@@ -127,6 +131,17 @@ export function ResourcePage<T>({
       ),
     );
   }, [data, query, searchKeys]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginated = useMemo(
+    () => filtered.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filtered, safePage, pageSize],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
 
   const openCreate = () => {
     const initial: Record<string, unknown> = { ...(defaultValues ?? {}) };
@@ -251,7 +266,7 @@ export function ResourcePage<T>({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((row) => (
+                  paginated.map((row) => (
                     <TableRow key={String(row[idKey])} className="hover:bg-muted/30">
                       {columns.map((c, i) => (
                         <TableCell key={i} className={c.className}>
@@ -298,6 +313,56 @@ export function ResourcePage<T>({
             </Table>
           </div>
         </Card>
+
+        {filtered.length > 0 && (
+          <div className="flex items-center justify-between gap-4 px-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Filas por página:</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(v) => {
+                  setPageSize(Number(v));
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 w-16">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZES.map((s) => (
+                    <SelectItem key={s} value={String(s)}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                Página {safePage} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={safePage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={safePage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </main>
 
       <Dialog open={open} onOpenChange={setOpen}>

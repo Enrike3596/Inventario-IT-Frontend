@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, Pencil, Trash2, PackageCheck, ScanLine, Loader2, Eye, X } from "lucide-react";
+import { Plus, Pencil, Trash2, PackageCheck, ScanLine, Loader2, Eye, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -255,6 +255,17 @@ function Page() {
     return items.filter((i: any) => i.cantidadIngresada < i.cantidadEsperada).length;
   };
 
+  const PAGE_SIZES = [10, 20, 30, 50, 100] as const;
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const ocList = ordenes ?? [];
+  const totalPages = Math.max(1, Math.ceil(ocList.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginatedOC = useMemo(
+    () => ocList.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [ocList, safePage, pageSize],
+  );
+
   return (
     <>
       <AppHeader
@@ -290,14 +301,14 @@ function Page() {
                       <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
-                ) : !ordenes?.length ? (
+                ) : !ocList.length ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-10">
                       Sin registros
                     </TableCell>
                   </TableRow>
                 ) : (
-                  ordenes.map((oc) => {
+                  paginatedOC.map((oc) => {
                     const items = (oc as any).itemsOC ?? [];
                     const totalItems = items.reduce((a: number, i: any) => a + i.cantidadEsperada, 0);
                     const ingresados = items.reduce((a: number, i: any) => a + i.cantidadIngresada, 0);
@@ -342,6 +353,56 @@ function Page() {
             </Table>
           </div>
         </Card>
+
+        {ocList.length > 0 && (
+          <div className="flex items-center justify-between gap-4 px-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Filas por página:</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(v) => {
+                  setPageSize(Number(v));
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 w-16">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZES.map((s) => (
+                    <SelectItem key={s} value={String(s)}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                Página {safePage} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={safePage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={safePage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* OC Create/Edit Dialog */}
