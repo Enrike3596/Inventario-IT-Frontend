@@ -12,7 +12,7 @@ import {
 import type { Activo } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/activos")({
-  head: () => ({ meta: [{ title: "Activos TI — SICOT" }] }),
+  head: () => ({ meta: [{ title: "Activos TI — Indigo" }] }),
   component: ActivosPage,
 });
 

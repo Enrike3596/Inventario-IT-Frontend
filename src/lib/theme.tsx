@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 type Theme = "light" | "dark";
-const KEY = "sicot.theme";
+const KEY = "Indigo.theme";
 
 const ThemeContext = createContext<{
   theme: Theme;

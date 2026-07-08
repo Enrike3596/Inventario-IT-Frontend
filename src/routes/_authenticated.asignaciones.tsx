@@ -13,7 +13,7 @@ import {
 import type { AsignacionUsuario } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/asignaciones")({
-  head: () => ({ meta: [{ title: "Asignaciones — SICOT" }] }),
+  head: () => ({ meta: [{ title: "Asignaciones — Indigo" }] }),
   component: Page,
 });
 

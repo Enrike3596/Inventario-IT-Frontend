@@ -5,7 +5,7 @@ import { useMovimientos, useActivos } from "@/lib/queries";
 import type { Movimiento } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/movimientos")({
-  head: () => ({ meta: [{ title: "Movimientos — SICOT" }] }),
+  head: () => ({ meta: [{ title: "Movimientos — Indigo" }] }),
   component: Page,
 });
 

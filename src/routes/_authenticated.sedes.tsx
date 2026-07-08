@@ -5,7 +5,7 @@ import { useSedes, useCreateSede, useUpdateSede, useDeleteSede } from "@/lib/que
 import type { Sede } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/sedes")({
-  head: () => ({ meta: [{ title: "Sedes — SICOT" }] }),
+  head: () => ({ meta: [{ title: "Sedes — Indigo" }] }),
   component: Page,
 });
 

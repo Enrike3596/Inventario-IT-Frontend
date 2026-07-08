@@ -1,4 +1,4 @@
-# SICOT — Sistema de Inventario TI
+# Indigo — Sistema de Inventario TI
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
@@ -6,7 +6,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4.2-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-red)](#licencia)
 
-> **SICOT** — Sistema Corporativo de Inventario TI. Aplicación web moderna para la gestión integral de activos informáticos, asignaciones, salidas de inventario y trazabilidad de movimientos.
+> **Indigo** — Sistema Corporativo de Inventario TI. Aplicación web moderna para la gestión integral de activos informáticos, asignaciones, salidas de inventario y trazabilidad de movimientos.
 
 ---
 
@@ -32,7 +32,7 @@
 
 ## Descripción
 
-SICOT es una aplicación **full-stack** para la administración del inventario de tecnología en una organización. Permite gestionar activos, usuarios, sedes, parqueaderos, órdenes de compra, categorías, canales de solicitud, asignaciones y salidas de inventario, con un panel de control que ofrece visibilidad en tiempo real del estado del inventario.
+Indigo es una aplicación **full-stack** para la administración del inventario de tecnología en una organización. Permite gestionar activos, usuarios, sedes, parqueaderos, órdenes de compra, categorías, canales de solicitud, asignaciones y salidas de inventario, con un panel de control que ofrece visibilidad en tiempo real del estado del inventario.
 
 El frontend está construido con **TanStack Start** (React 19 + SSR), **Tailwind CSS v4** y **shadcn/ui**, consumiendo una API REST backend en **ASP.NET Core 10**.
 

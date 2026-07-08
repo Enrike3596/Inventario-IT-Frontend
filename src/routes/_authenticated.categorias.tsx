@@ -10,7 +10,7 @@ import {
 import type { CategoriaActivo } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/categorias")({
-  head: () => ({ meta: [{ title: "Categorías — SICOT" }] }),
+  head: () => ({ meta: [{ title: "Categorías — Indigo" }] }),
   component: Page,
 });
 

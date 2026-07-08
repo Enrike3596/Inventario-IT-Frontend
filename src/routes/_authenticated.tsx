@@ -6,7 +6,7 @@ export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: () => {
     if (typeof window === "undefined") return;
-    const raw = window.localStorage.getItem("sicot.user");
+    const raw = window.localStorage.getItem("Indigo.user");
     if (!raw) {
       throw redirect({ to: "/auth" });
     }

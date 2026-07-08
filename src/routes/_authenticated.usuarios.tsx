@@ -12,7 +12,7 @@ import {
 import type { Usuario } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
-  head: () => ({ meta: [{ title: "Usuarios — SICOT" }] }),
+  head: () => ({ meta: [{ title: "Usuarios — Indigo" }] }),
   component: Page,
 });
 

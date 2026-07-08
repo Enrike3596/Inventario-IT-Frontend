@@ -12,7 +12,7 @@ interface AuthState {
   can: (action: "view" | "create" | "edit" | "delete") => boolean;
 }
 
-const STORAGE_KEY = "sicot.user";
+const STORAGE_KEY = "Indigo.user";
 
 const AuthContext = createContext<AuthState | null>(null);
 

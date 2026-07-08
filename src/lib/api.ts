@@ -1,7 +1,7 @@
 import type { ApiResponse } from "./types";
 
 const RAW_API_URL = import.meta.env.VITE_API_URL as string | undefined;
-const TOKEN_KEY = "sicot.token";
+const TOKEN_KEY = "Indigo.token";
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;

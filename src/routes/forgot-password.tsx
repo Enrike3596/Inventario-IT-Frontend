@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/auth";
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({
     meta: [
-      { title: "Recuperar contraseña — SICOT" },
+      { title: "Recuperar contraseña — Indigo" },
       { name: "description", content: "Solicita el restablecimiento de tu contraseña." },
     ],
   }),

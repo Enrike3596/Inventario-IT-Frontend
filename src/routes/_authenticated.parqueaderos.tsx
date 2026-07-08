@@ -11,7 +11,7 @@ import {
 import type { Parqueadero } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/parqueaderos")({
-  head: () => ({ meta: [{ title: "Parqueaderos — SICOT" }] }),
+  head: () => ({ meta: [{ title: "Parqueaderos — Indigo" }] }),
   component: Page,
 });
 

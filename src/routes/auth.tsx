@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/auth";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Iniciar sesión — SICOT" },
+      { title: "Iniciar sesión — Indigo" },
       { name: "description", content: "Acceso al sistema de inventario TI." },
     ],
   }),
@@ -50,7 +50,7 @@ function AuthPage() {
             <div className="h-10 w-10 rounded-lg bg-white/15 backdrop-blur grid place-items-center font-display font-bold">
               S
             </div>
-            <span className="font-display text-xl font-semibold tracking-tight">SICOT</span>
+            <span className="font-display text-xl font-semibold tracking-tight">Indigo</span>
           </div>
         </div>
         <div className="relative z-10 max-w-lg">
@@ -67,7 +67,7 @@ function AuthPage() {
           </div>
         </div>
         <p className="relative z-10 text-xs text-white/70">
-          © {new Date().getFullYear()} SICOT · Sistema Corporativo de Inventario TI
+          © {new Date().getFullYear()} Indigo · Sistema Corporativo de Inventario TI
         </p>
       </div>
 

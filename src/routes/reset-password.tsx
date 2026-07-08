@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/auth";
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
-      { title: "Restablecer contraseña — SICOT" },
+      { title: "Restablecer contraseña — Indigo" },
       { name: "description", content: "Define una nueva contraseña." },
       { name: "robots", content: "noindex" },
     ],

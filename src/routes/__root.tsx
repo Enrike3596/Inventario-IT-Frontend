@@ -86,14 +86,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "SICOT — Sistema de Inventario TI" },
+      { title: "Indigo — Sistema de Inventario TI" },
       {
         name: "description",
         content:
           "Plataforma corporativa para gestión de activos, asignaciones y movimientos de TI.",
       },
-      { name: "author", content: "SICOT" },
-      { property: "og:title", content: "SICOT — Sistema de Inventario TI" },
+      { name: "author", content: "Indigo" },
+      { property: "og:title", content: "Indigo — Sistema de Inventario TI" },
       {
         property: "og:description",
         content:

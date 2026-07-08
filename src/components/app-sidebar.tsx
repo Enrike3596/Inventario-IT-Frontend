@@ -81,7 +81,7 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="flex flex-col">
             <span className="font-display font-semibold text-sidebar-foreground leading-none">
-              SICOT
+              Indigo
             </span>
             <span className="text-[10px] uppercase tracking-wider text-sidebar-foreground/60 mt-0.5">
               Inventario TI

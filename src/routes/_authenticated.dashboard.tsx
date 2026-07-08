@@ -7,7 +7,7 @@ import { useActivos, useUsuarios, useAsignaciones, useMovimientos } from "@/lib/
 import { useAuth, ROLE_LABEL } from "@/lib/auth";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard — SICOT" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — Indigo" }] }),
   component: Dashboard,
 });
 

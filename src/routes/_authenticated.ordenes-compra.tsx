@@ -32,7 +32,7 @@ import { apiFetch } from "@/lib/api";
 import type { OrdenCompra, OrdenCompraDetail } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/ordenes-compra")({
-  head: () => ({ meta: [{ title: "Órdenes de Compra — SICOT" }] }),
+  head: () => ({ meta: [{ title: "Órdenes de Compra — Indigo" }] }),
   component: Page,
 });
 

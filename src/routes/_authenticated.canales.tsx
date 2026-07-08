@@ -4,7 +4,7 @@ import { useCanales, useCreateCanal, useUpdateCanal, useDeleteCanal } from "@/li
 import type { Canal } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/canales")({
-  head: () => ({ meta: [{ title: "Canales — SICOT" }] }),
+  head: () => ({ meta: [{ title: "Canales — Indigo" }] }),
   component: Page,
 });
 

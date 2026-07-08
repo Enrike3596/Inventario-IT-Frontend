@@ -5,7 +5,7 @@ import { useRoles, useCreateRol, useUpdateRol, useDeleteRol } from "@/lib/querie
 import type { Role } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/roles")({
-  head: () => ({ meta: [{ title: "Roles — SICOT" }] }),
+  head: () => ({ meta: [{ title: "Roles — Indigo" }] }),
   component: Page,
 });
 

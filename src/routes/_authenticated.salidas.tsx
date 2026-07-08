@@ -13,7 +13,7 @@ import {
 import type { Salida } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/salidas")({
-  head: () => ({ meta: [{ title: "Salidas — SICOT" }] }),
+  head: () => ({ meta: [{ title: "Salidas — Indigo" }] }),
   component: Page,
 });
 
