@@ -118,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setToken(null);
     persist(null);
+    window.location.href = "/auth";
   };
 
   const forgotPassword: AuthState["forgotPassword"] = async (email) => {
