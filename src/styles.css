@@ -105,14 +105,14 @@
   --shadow-elegant: 0 10px 30px -12px color-mix(in oklab, var(--brand-purple) 30%, transparent);
   --shadow-glow: 0 0 40px -8px color-mix(in oklab, var(--brand-magenta) 45%, transparent);
 
-  /* Sidebar (dark corporate rail even in light mode for contrast) */
-  --sidebar: oklch(0.19 0.06 275);
-  --sidebar-foreground: oklch(0.92 0.02 280);
+  /* Sidebar — brand purple, matching the brand gradient palette */
+  --sidebar: var(--brand-purple);
+  --sidebar-foreground: oklch(0.93 0.02 300);
   --sidebar-primary: var(--brand-magenta);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.25 0.07 280);
-  --sidebar-accent-foreground: oklch(0.98 0.01 280);
-  --sidebar-border: oklch(0.28 0.05 275);
+  --sidebar-accent: oklch(0.45 0.18 325);
+  --sidebar-accent-foreground: oklch(0.99 0 0);
+  --sidebar-border: oklch(0.45 0.15 310);
   --sidebar-ring: var(--brand-magenta);
 }
 
@@ -152,13 +152,13 @@
   --shadow-elegant: 0 10px 30px -12px color-mix(in oklab, var(--brand-magenta) 40%, transparent);
   --shadow-glow: 0 0 50px -8px color-mix(in oklab, var(--brand-magenta) 55%, transparent);
 
-  --sidebar: oklch(0.13 0.03 270);
-  --sidebar-foreground: oklch(0.92 0.02 280);
+  --sidebar: oklch(0.18 0.10 310);
+  --sidebar-foreground: oklch(0.90 0.02 300);
   --sidebar-primary: var(--brand-magenta);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.22 0.05 275);
-  --sidebar-accent-foreground: oklch(0.98 0.01 280);
-  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-accent: oklch(0.30 0.15 320);
+  --sidebar-accent-foreground: oklch(0.99 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: var(--brand-magenta);
 }
 
