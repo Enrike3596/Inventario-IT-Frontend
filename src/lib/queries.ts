@@ -307,6 +307,14 @@ export function useUpdateAsignacion() {
     },
   });
 }
+export function useAsignacionesPorActivo(idActivo: number | null) {
+  return useQuery<AsignacionUsuario[]>({
+    queryKey: [...keys.asignaciones.all, "activo", idActivo] as string[],
+    queryFn: () => apiFetch<AsignacionUsuario[]>(`/api/AsignacionesUsuario/activo/${idActivo}`),
+    enabled: !!idActivo,
+  });
+}
+
 export function useDeleteAsignacion() {
   return useDelete(keys.asignaciones.all, "/api/AsignacionesUsuario");
 }

@@ -33,6 +33,7 @@ function Page() {
 
   return (
     <ResourcePage<Salida>
+      module="salidas"
       title="Salidas"
       subtitle="Salidas de inventario por canal y parqueadero"
       data={salidas ?? []}

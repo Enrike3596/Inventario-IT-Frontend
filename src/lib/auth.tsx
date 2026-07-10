@@ -9,7 +9,7 @@ interface AuthState {
   logout: () => void;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (token: string, password: string) => Promise<void>;
-  can: (action: "view" | "create" | "edit" | "delete") => boolean;
+  can: (action: "view" | "create" | "edit" | "delete", module?: string) => boolean;
 }
 
 const STORAGE_KEY = "Indigo.user";
@@ -135,11 +135,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const can: AuthState["can"] = (action) => {
+  const can: AuthState["can"] = (action, module) => {
     if (!user) return false;
     if (user.role === "super_admin") return true;
-    if (action === "delete") return false;
-    return true;
+    if (user.role === "agente_soporte") {
+      if (action === "view") return true;
+      if (action === "create" && module && ["asignaciones", "salidas", "ordenes-compra"].includes(module)) return true;
+      return false;
+    }
+    if (user.role === "coordinador") return action !== "delete";
+    return false;
   };
 
   return (

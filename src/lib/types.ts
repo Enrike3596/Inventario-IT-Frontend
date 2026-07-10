@@ -149,6 +149,7 @@ export interface AsignacionUsuario {
   nombreParqueadero?: string;
   fechaAsignacion: string;
   estadoAsignacion: EstadoAsignacion;
+  fechaModificacion?: string | null;
 }
 
 export interface Movimiento {

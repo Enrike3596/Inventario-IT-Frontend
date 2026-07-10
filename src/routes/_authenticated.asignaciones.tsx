@@ -39,6 +39,7 @@ function Page() {
 
   return (
     <ResourcePage<AsignacionUsuario>
+      module="asignaciones"
       title="Asignaciones"
       subtitle="Entrega de activos a usuarios"
       data={asignaciones ?? []}
@@ -130,7 +131,7 @@ function Page() {
       }}
       transformUpdate={(data) => {
         const d = data as Record<string, unknown>;
-        return { estadoAsignacion: d.estadoAsignacion } as Partial<AsignacionUsuario>;
+        return { estadoAsignacion: d.estadoAsignacion, motivoEdicion: d.motivoEdicion } as Partial<AsignacionUsuario>;
       }}
       onCreate={(data) => createMutation.mutateAsync(data)}
       onUpdate={(id, data) => updateMutation.mutateAsync({ id, data })}

@@ -41,7 +41,7 @@ const money = new Intl.NumberFormat("es-CO", {
 });
 
 function Page() {
-  const { can } = useAuth();
+  const { can, user } = useAuth();
   const { data: ordenes, isLoading } = useOrdenesCompra();
   const { data: categorias } = useCategorias();
   const createMutation = useCreateOrdenCompra();
@@ -50,15 +50,18 @@ function Page() {
   const confirmarMutation = useConfirmarIngreso();
 
   const qc = useQueryClient();
-  const canCreate = can("create");
-  const canEdit = can("edit");
-  const canDelete = can("delete");
+    const canCreate = can("create", "ordenes-compra");
+    const canEdit = can("edit", "ordenes-compra");
+    const canDelete = can("delete", "ordenes-compra");
 
   // OC form state
   const [ocFormOpen, setOcFormOpen] = useState(false);
   const [editingOC, setEditingOC] = useState<OrdenCompra | null>(null);
-  const [ocForm, setOcForm] = useState({ numeroOC: "", proveedor: "", total: 0, observaciones: "" });
+  const [ocForm, setOcForm] = useState({ numeroOC: "", proveedor: "", total: 0, observaciones: "", motivoEdicion: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [editReasonOpen, setEditReasonOpen] = useState(false);
+  const [editReason, setEditReason] = useState("");
+  const [pendingEditOC, setPendingEditOC] = useState<OrdenCompra | null>(null);
 
   // Items to create with new OC
   const [createItems, setCreateItems] = useState<Array<{
@@ -97,7 +100,7 @@ function Page() {
   const [serialBatch, setSerialBatch] = useState<string[]>([]);
 
   const openCreateOC = () => {
-    setOcForm({ numeroOC: "", proveedor: "", total: 0, observaciones: "" });
+    setOcForm({ numeroOC: "", proveedor: "", total: 0, observaciones: "", motivoEdicion: "" });
     setCreateItems([]);
     setCreateItemForm({ idCategoria: "", nombreProducto: "", marca: "", modelo: "", referencia: "", observaciones: "", cantidadEsperada: 1 });
     setEditingOC(null);
@@ -127,8 +130,24 @@ function Page() {
   };
 
   const openEditOC = (oc: OrdenCompra) => {
-    setOcForm({ numeroOC: oc.numeroOC, proveedor: oc.proveedor, total: oc.total, observaciones: oc.observaciones });
+    if (user?.role === "coordinador") {
+      setEditReason("");
+      setPendingEditOC(oc);
+      setEditReasonOpen(true);
+      return;
+    }
+    setOcForm({ numeroOC: oc.numeroOC, proveedor: oc.proveedor, total: oc.total, observaciones: oc.observaciones, motivoEdicion: "" });
     setEditingOC(oc);
+    setOcFormOpen(true);
+  };
+
+  const confirmOCEditReason = () => {
+    if (!pendingEditOC) return;
+    const oc = pendingEditOC;
+    setOcForm({ numeroOC: oc.numeroOC, proveedor: oc.proveedor, total: oc.total, observaciones: oc.observaciones, motivoEdicion: editReason });
+    setEditingOC(oc);
+    setEditReasonOpen(false);
+    setPendingEditOC(null);
     setOcFormOpen(true);
   };
 
@@ -840,6 +859,34 @@ function Page() {
               </Button>
             </DialogFooter>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit reason dialog (coordinador) */}
+      <Dialog open={editReasonOpen} onOpenChange={(o) => { if (!o) { setEditReasonOpen(false); setPendingEditOC(null); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Motivo de la edición</DialogTitle>
+            <DialogDescription>
+              Indica el motivo por el cual deseas realizar esta modificación.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={editReason}
+              onChange={(e) => setEditReason(e.target.value)}
+              placeholder="Describe el motivo de la edición..."
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditReasonOpen(false); setPendingEditOC(null); }}>
+              Cancelar
+            </Button>
+            <Button variant="brand" onClick={confirmOCEditReason} disabled={!editReason.trim()}>
+              Continuar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

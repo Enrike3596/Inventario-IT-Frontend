@@ -91,6 +91,8 @@ interface ResourcePageProps<T> {
   transformUpdate?: (data: Partial<T>) => Partial<T>;
   filters?: ReactNode;
   filterFn?: (item: T) => boolean;
+  module?: string;
+  extraActions?: (row: T) => ReactNode;
 }
 
 export function ResourcePage<T>({
@@ -114,8 +116,10 @@ export function ResourcePage<T>({
   transformUpdate,
   filters,
   filterFn,
+  module,
+  extraActions,
 }: ResourcePageProps<T>) {
-  const { can } = useAuth();
+  const { can, user } = useAuth();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
@@ -125,6 +129,9 @@ export function ResourcePage<T>({
   const [viewing, setViewing] = useState<T | null>(null);
   const [form, setForm] = useState<Record<string, unknown>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [editReason, setEditReason] = useState("");
+  const [editReasonOpen, setEditReasonOpen] = useState(false);
+  const [pendingEditRow, setPendingEditRow] = useState<T | null>(null);
 
   const filtered = useMemo(() => {
     let result = data;
@@ -164,8 +171,24 @@ export function ResourcePage<T>({
   };
 
   const openEdit = (row: T) => {
+    if (user?.role === "coordinador") {
+      setEditReason("");
+      setPendingEditRow(row);
+      setEditReasonOpen(true);
+      return;
+    }
     setForm({ ...(row as unknown as Record<string, unknown>) });
     setEditing(row);
+    setOpen(true);
+  };
+
+  const confirmEditReason = () => {
+    if (!pendingEditRow) return;
+    const row = pendingEditRow;
+    setForm((prev) => ({ ...(row as unknown as Record<string, unknown>), motivoEdicion: editReason }));
+    setEditing(row);
+    setEditReasonOpen(false);
+    setPendingEditRow(null);
     setOpen(true);
   };
 
@@ -210,9 +233,9 @@ export function ResourcePage<T>({
     }
   };
 
-  const canCreate = can("create");
-  const canEdit = can("edit");
-  const canDelete = can("delete");
+  const canCreate = can("create", module);
+  const canEdit = can("edit", module);
+  const canDelete = can("delete", module);
 
   return (
     <>
@@ -299,6 +322,7 @@ export function ResourcePage<T>({
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {extraActions?.(row)}
                           {canEdit && (
                             <Button
                               size="icon"
@@ -359,6 +383,7 @@ export function ResourcePage<T>({
                   <Button size="sm" variant="ghost" onClick={() => setViewing(row)}>
                     <Eye className="h-3.5 w-3.5 mr-1" /> Ver
                   </Button>
+                  {extraActions?.(row)}
                   {canEdit && (
                     <Button size="sm" variant="ghost" onClick={() => openEdit(row)}>
                       <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
@@ -534,6 +559,34 @@ export function ResourcePage<T>({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit reason dialog (coordinador) */}
+      <Dialog open={editReasonOpen} onOpenChange={(o) => { if (!o) { setEditReasonOpen(false); setPendingEditRow(null); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Motivo de la edición</DialogTitle>
+            <DialogDescription>
+              Indica el motivo por el cual deseas realizar esta modificación.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={editReason}
+              onChange={(e) => setEditReason(e.target.value)}
+              placeholder="Describe el motivo de la edición..."
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditReasonOpen(false); setPendingEditRow(null); }}>
+              Cancelar
+            </Button>
+            <Button variant="brand" onClick={confirmEditReason} disabled={!editReason.trim()}>
+              Continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* View details dialog */}
       <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
