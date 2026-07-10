@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, Pencil, Trash2, PackageCheck, ScanLine, Loader2, Eye, X, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, PackageCheck, ScanLine, Loader2, Eye, X, Info, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -22,11 +22,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip, TooltipTrigger, TooltipContent, TooltipProvider,
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useOrdenesCompra, useCreateOrdenCompra, useUpdateOrdenCompra, useDeleteOrdenCompra, useConfirmarIngreso,
-  useCategorias,
+  useOrdenesCompra, useOrdenCompraDetail, useCreateOrdenCompra, useUpdateOrdenCompra, useDeleteOrdenCompra, useConfirmarIngreso,
+  useCategorias, keys,
 } from "@/lib/queries";
 import { apiFetch } from "@/lib/api";
 import type { OrdenCompra, OrdenCompraDetail } from "@/lib/types";
@@ -84,6 +87,8 @@ function Page() {
 
   // Detail view
   const [detailView, setDetailView] = useState<OrdenCompra | null>(null);
+  const detailId = detailView?.idOrden;
+  const { data: detailData } = useOrdenCompraDetail(detailId ?? 0);
 
   // ItemOC form
   const [itemFormOpen, setItemFormOpen] = useState(false);
@@ -95,7 +100,7 @@ function Page() {
 
   // Serial form
   const [serialFormOpen, setSerialFormOpen] = useState(false);
-  const [serialForItem, setSerialForItem] = useState<{ idItemOC: number; nombre: string } | null>(null);
+  const [serialForItem, setSerialForItem] = useState<{ idItemOC: number; nombre: string; maxSerials: number } | null>(null);
   const [serialInput, setSerialInput] = useState("");
   const [serialBatch, setSerialBatch] = useState<string[]>([]);
 
@@ -169,6 +174,7 @@ function Page() {
             body: JSON.stringify({ idOrden: oc.idOrden, ...item }),
           });
         }
+        qc.invalidateQueries({ queryKey: keys.ordenes.all });
         toast.success("Orden creada");
       }
       setOcFormOpen(false);
@@ -232,8 +238,8 @@ function Page() {
     } finally { setSubmitting(false); }
   };
 
-  const openAddSerials = (idItemOC: number, nombre: string) => {
-    setSerialForItem({ idItemOC, nombre });
+  const openAddSerials = (idItemOC: number, nombre: string, maxSerials: number) => {
+    setSerialForItem({ idItemOC, nombre, maxSerials });
     setSerialInput("");
     setSerialBatch([]);
     setSerialFormOpen(true);
@@ -243,6 +249,10 @@ function Page() {
     const s = serialInput.trim();
     if (!s) return;
     if (serialBatch.includes(s)) { toast.error("Serial ya agregado"); return; }
+    if (serialForItem && serialBatch.length >= serialForItem.maxSerials) {
+      toast.error(`Máximo ${serialForItem.maxSerials} serial(es) permitido(s) para esta cantidad`);
+      return;
+    }
     setSerialBatch((prev) => [...prev, s]);
     setSerialInput("");
   };
@@ -650,37 +660,38 @@ function Page() {
 
       {/* Detail view Dialog */}
       <Dialog open={!!detailView} onOpenChange={(o) => !o && setDetailView(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>Detalles de la orden</DialogTitle>
             <DialogDescription>Información completa y gestión de ítems.</DialogDescription>
           </DialogHeader>
-          {detailView && (() => {
-            const items = (detailView as any).itemsOC ?? [];
+          {(detailData ?? detailView) && (() => {
+            const data = detailData ?? detailView!;
+            const items = (data as any).itemsOC ?? [];
             const totalItems = items.reduce((a: number, i: any) => a + i.cantidadEsperada, 0);
             const ingresados = items.reduce((a: number, i: any) => a + i.cantidadIngresada, 0);
             return (
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                   <div>
                     <Label className="text-muted-foreground text-xs">N° OC</Label>
-                    <p>{detailView.numeroOC}</p>
+                    <p className="font-medium">{data.numeroOC}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground text-xs">Proveedor</Label>
-                    <p>{detailView.proveedor}</p>
+                    <p>{data.proveedor}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground text-xs">Fecha</Label>
-                    <p>{new Date(detailView.fechaCompra).toLocaleDateString("es-CO")}</p>
+                    <p>{new Date(data.fechaCompra).toLocaleDateString("es-CO")}</p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground text-xs">Total</Label>
-                    <p>{money.format(detailView.total)}</p>
+                    <p className="font-medium">{money.format(data.total)}</p>
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-full">
                     <Label className="text-muted-foreground text-xs">Observaciones</Label>
-                    <p>{detailView.observaciones || "—"}</p>
+                    <p>{data.observaciones || "—"}</p>
                   </div>
                 </div>
 
@@ -688,12 +699,12 @@ function Page() {
                   <div className="flex gap-2 items-center mb-3">
                     <h4 className="text-sm font-semibold">Ítems de la orden</h4>
                     {canCreate && (
-                      <Button size="sm" variant="outline" onClick={() => { const id = detailView.idOrden; setDetailView(null); openAddItem(id); }}>
+                      <Button size="sm" variant="outline" onClick={() => { const id = data.idOrden; setDetailView(null); openAddItem(id); }}>
                         <Plus className="h-3 w-3" /> Agregar ítem
                       </Button>
                     )}
                     {canEdit && ingresados > 0 && ingresados === totalItems && (
-                      <Button size="sm" variant="brand" onClick={() => { const id = detailView.idOrden; setDetailView(null); confirmarOC(id); }}>
+                      <Button size="sm" variant="brand" onClick={() => { const id = data.idOrden; setDetailView(null); confirmarOC(id); }}>
                         <PackageCheck className="h-3 w-3" /> Confirmar ingreso
                       </Button>
                     )}
@@ -706,47 +717,94 @@ function Page() {
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-muted/40">
-                            <TableHead>Producto</TableHead>
-                            <TableHead>Categoría</TableHead>
-                            <TableHead>Marca</TableHead>
-                            <TableHead>Modelo</TableHead>
-                            <TableHead>Esperados</TableHead>
+                            <TableHead className="min-w-[200px]">Producto</TableHead>
+                            <TableHead>Ref.</TableHead>
+                            <TableHead>Cant.</TableHead>
                             <TableHead>Seriales</TableHead>
-                            <TableHead className="w-32 text-right">Acciones</TableHead>
+                            <TableHead className="w-24 text-right">Acciones</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {items.map((item: any) => {
                             const detalles = item.detallesItem ?? [];
+                            const completo = item.cantidadIngresada >= item.cantidadEsperada;
                             return (
                               <TableRow key={item.idItemOC} className="hover:bg-muted/30">
-                                <TableCell className="font-medium">{item.nombreProducto}</TableCell>
-                                <TableCell>{item.nombreCategoria ?? "—"}</TableCell>
-                                <TableCell>{item.marca}</TableCell>
-                                <TableCell>{item.modelo}</TableCell>
-                                <TableCell>{item.cantidadEsperada}</TableCell>
                                 <TableCell>
-                                  <div className="flex flex-wrap gap-1">
-                                    {detalles.map((d: any) => (
-                                      <Badge
-                                        key={d.idDetalleItemOC}
-                                        variant="outline"
-                                        className={d.procesado ? "bg-success/15 text-success" : "bg-muted"}
-                                      >
-                                        <span className="font-mono text-xs">{d.serial}</span>
+                                  <div className="flex flex-col gap-0.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium text-sm">{item.nombreProducto}</span>
+                                      <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                                        {item.nombreCategoria ?? "—"}
                                       </Badge>
-                                    ))}
-                                    {canCreate && !item.todosProcesados && (
-                                      <Button size="sm" variant="ghost" className="h-5 text-xs" onClick={() => { const id = item.idItemOC; const nombre = item.nombreProducto; setDetailView(null); openAddSerials(id, nombre); }}>
-                                        <ScanLine className="h-3 w-3" /> Agregar serial
+                                      {item.observaciones && (
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help shrink-0" />
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="max-w-[250px] text-xs">
+                                              {item.observaciones}
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      )}
+                                    </div>
+                                    <span className="text-xs text-muted-foreground">
+                                      {item.marca} / {item.modelo}
+                                      {item.referencia ? ` · ${item.referencia}` : ""}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="text-xs font-mono">{item.referencia ?? "—"}</span>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-xs font-medium ${completo ? "text-success" : ""}`}>
+                                      {item.cantidadIngresada}/{item.cantidadEsperada}
+                                    </span>
+                                    {completo ? (
+                                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-success/15 text-success">
+                                        Completo
+                                      </Badge>
+                                    ) : item.cantidadIngresada > 0 ? (
+                                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-warning/15 text-warning">
+                                        Parcial
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-muted text-muted-foreground">
+                                        Pendiente
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-wrap gap-1 items-center">
+                                    {detalles.length > 0 ? (
+                                      detalles.map((d: any) => (
+                                        <Badge
+                                          key={d.idDetalleItemOC}
+                                          variant="outline"
+                                          className={d.procesado ? "bg-success/15 text-success border-success/30" : "bg-muted"}
+                                        >
+                                          <span className="font-mono text-[11px]">{d.serial}</span>
+                                        </Badge>
+                                      ))
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">—</span>
+                                    )}
+                                    {canCreate && !completo && (
+                                      <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => { const id = item.idItemOC; const nombre = item.nombreProducto; const remaining = Math.max(0, item.cantidadEsperada - item.cantidadIngresada); setDetailView(null); openAddSerials(id, nombre, remaining); }}>
+                                        <ScanLine className="h-3 w-3 mr-0.5" /> +
                                       </Button>
                                     )}
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right">
                                   {canDelete && (
-                                    <Button size="icon" variant="ghost" className="h-6 w-6" aria-label="Eliminar item">
-                                      <Trash2 className="h-3 w-3" />
+                                    <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Eliminar item">
+                                      <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
                                 </TableCell>
@@ -828,7 +886,7 @@ function Page() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Registrar seriales</DialogTitle>
-            <DialogDescription>Agrega uno o más seriales para: {serialForItem?.nombre}</DialogDescription>
+            <DialogDescription>Agrega seriales para: {serialForItem?.nombre}{serialForItem ? ` (máx. ${serialForItem.maxSerials})` : ""}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex gap-2">
@@ -842,7 +900,14 @@ function Page() {
             </div>
             {serialBatch.length > 0 && (
               <div className="border rounded-lg p-3 space-y-2 max-h-48 overflow-y-auto">
-                <p className="text-xs font-semibold text-muted-foreground">Seriales a registrar ({serialBatch.length})</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-muted-foreground">Seriales a registrar ({serialBatch.length})</p>
+                  {serialForItem && (
+                    <span className="text-xs text-muted-foreground">
+                      {serialForItem.maxSerials - serialBatch.length} restantes
+                    </span>
+                  )}
+                </div>
                 {serialBatch.map((s, i) => (
                   <div key={i} className="flex items-center justify-between text-sm bg-muted/30 px-2 py-1 rounded">
                     <span className="font-mono text-xs">{s}</span>
