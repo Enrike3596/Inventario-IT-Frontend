@@ -123,18 +123,10 @@ export interface Canal {
 
 export interface Salida {
   idSalida: number;
-  idCanal: number;
-  nombreCanal?: string;
   codigoUnico: string;
-  numeroTicket: string | null;
   idUsuarioDestino: number | null;
   nombreUsuarioDestino?: string;
-  idParqueaderoDestino: number | null;
-  nombreParqueaderoDestino?: string;
-  idUsuarioEntrega: number;
-  nombreUsuarioEntrega?: string;
   fechaSalida: string;
-  registroSalida: string;
   observaciones: string | null;
 }
 
@@ -147,6 +139,12 @@ export interface AsignacionUsuario {
   nombreUsuarioDestino?: string;
   idParqueadero: number | null;
   nombreParqueadero?: string;
+  idCanal: number;
+  nombreCanal?: string;
+  idUsuarioEntrega: number;
+  nombreUsuarioEntrega?: string;
+  registroSalida: string;
+  numeroTicket: string | null;
   fechaAsignacion: string;
   estadoAsignacion: EstadoAsignacion;
   fechaModificacion?: string | null;

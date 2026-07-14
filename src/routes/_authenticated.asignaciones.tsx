@@ -13,6 +13,7 @@ import {
   useUsuarios,
   useActivos,
   useParqueaderos,
+  useCanales,
 } from "@/lib/queries";
 import type { AsignacionUsuario } from "@/lib/types";
 
@@ -26,6 +27,7 @@ function Page() {
   const { data: usuarios } = useUsuarios();
   const { data: activos } = useActivos();
   const { data: parqueaderos } = useParqueaderos();
+  const { data: canales } = useCanales();
   const createMutation = useCreateAsignacion();
   const updateMutation = useUpdateAsignacion();
   const deleteMutation = useDeleteAsignacion();
@@ -75,6 +77,26 @@ function Page() {
             a.serial ? `${a.serial}${a.codigoActivo ? ` — ${a.codigoActivo}` : ""}` : "—",
         },
         {
+          header: "Canal",
+          render: (a) => a.nombreCanal ?? "—",
+        },
+        {
+          header: "Parqueadero",
+          render: (a) => a.nombreParqueadero ?? "—",
+        },
+        {
+          header: "Usuario entrega",
+          render: (a) => a.nombreUsuarioEntrega ?? "—",
+        },
+        {
+          header: "Registro de salida",
+          render: (a) => a.registroSalida ?? "—",
+        },
+        {
+          header: "N° Ticket",
+          render: (a) => a.numeroTicket ?? "—",
+        },
+        {
           header: "Asignado",
           render: (a) => new Date(a.fechaAsignacion).toLocaleDateString("es-CO"),
         },
@@ -107,13 +129,29 @@ function Page() {
         },
         {
           key: "idParqueadero",
-          label: "Parqueadero origen",
+          label: "Parqueadero destino",
           type: "select",
           options: [
             { value: "" as unknown as number, label: "— Ninguno —" },
             ...(parqueaderos ?? []).map((p) => ({ value: p.idParqueadero, label: p.nombre })),
           ],
         },
+        {
+          key: "idCanal",
+          label: "Canal",
+          type: "select",
+          required: true,
+          options: (canales ?? []).map((c) => ({ value: c.idCanal, label: c.nombre })),
+        },
+        {
+          key: "idUsuarioEntrega",
+          label: "Usuario entrega",
+          type: "select",
+          required: true,
+          options: (usuarios ?? []).map((u) => ({ value: u.idUsuario, label: u.nombre })),
+        },
+        { key: "registroSalida", label: "Registro de salida", type: "text", required: true },
+        { key: "numeroTicket", label: "N° Ticket", type: "text" },
         {
           key: "estadoAsignacion",
           label: "Estado",
@@ -127,7 +165,10 @@ function Page() {
       ]}
       transformCreate={(data) => {
         const d = data as Record<string, unknown>;
-        return { ...d, idParqueadero: d.idParqueadero === "" ? null : d.idParqueadero } as Partial<AsignacionUsuario>;
+        return {
+          ...d,
+          idParqueadero: d.idParqueadero === "" ? null : d.idParqueadero,
+        } as Partial<AsignacionUsuario>;
       }}
       transformUpdate={(data) => {
         const d = data as Record<string, unknown>;
