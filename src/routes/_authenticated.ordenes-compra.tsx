@@ -68,6 +68,7 @@ function Page() {
 
   // Items to create with new OC
   const [createItems, setCreateItems] = useState<Array<{
+    idItemOC?: number;
     idCategoria: number;
     nombreProducto: string;
     marca: string;
@@ -80,6 +81,7 @@ function Page() {
     idCategoria: "", nombreProducto: "", marca: "", modelo: "",
     referencia: "", observaciones: "", cantidadEsperada: 1,
   });
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
 
   // Delete confirmation
   const [toDelete, setToDelete] = useState<OrdenCompra | null>(null);
@@ -103,11 +105,15 @@ function Page() {
   const [serialForItem, setSerialForItem] = useState<{ idItemOC: number; nombre: string; maxSerials: number } | null>(null);
   const [serialInput, setSerialInput] = useState("");
   const [serialBatch, setSerialBatch] = useState<string[]>([]);
+  const [existingSerials, setExistingSerials] = useState<{ idDetalleItemOC: number; serial: string }[]>([]);
+  const [removedSerialIds, setRemovedSerialIds] = useState<number[]>([]);
+  const [editedSerials, setEditedSerials] = useState<Record<number, string>>({});
 
   const openCreateOC = () => {
     setOcForm({ numeroOC: "", proveedor: "", total: 0, observaciones: "", motivoEdicion: "" });
     setCreateItems([]);
     setCreateItemForm({ idCategoria: "", nombreProducto: "", marca: "", modelo: "", referencia: "", observaciones: "", cantidadEsperada: 1 });
+    setEditingItemIndex(null);
     setEditingOC(null);
     setOcFormOpen(true);
   };
@@ -118,7 +124,7 @@ function Page() {
       toast.error("Categoría, producto, marca y modelo son obligatorios");
       return;
     }
-    setCreateItems((prev) => [...prev, {
+    const newItem = {
       idCategoria: Number(f.idCategoria),
       nombreProducto: f.nombreProducto,
       marca: f.marca,
@@ -126,12 +132,38 @@ function Page() {
       referencia: f.referencia || null,
       observaciones: f.observaciones || null,
       cantidadEsperada: f.cantidadEsperada,
-    }]);
+    };
+    if (editingItemIndex !== null) {
+      setCreateItems((prev) => prev.map((item, i) => i === editingItemIndex ? { ...item, ...newItem } : item));
+      setEditingItemIndex(null);
+      toast.success("Ítem actualizado");
+    } else {
+      setCreateItems((prev) => [...prev, newItem]);
+      toast.success("Ítem agregado");
+    }
     setCreateItemForm({ idCategoria: "", nombreProducto: "", marca: "", modelo: "", referencia: "", observaciones: "", cantidadEsperada: 1 });
+  };
+
+  const loadItemToForm = (idx: number) => {
+    const item = createItems[idx];
+    setCreateItemForm({
+      idCategoria: String(item.idCategoria),
+      nombreProducto: item.nombreProducto,
+      marca: item.marca,
+      modelo: item.modelo,
+      referencia: item.referencia ?? "",
+      observaciones: item.observaciones ?? "",
+      cantidadEsperada: item.cantidadEsperada,
+    });
+    setEditingItemIndex(idx);
   };
 
   const removeItemFromCreateList = (idx: number) => {
     setCreateItems((prev) => prev.filter((_, i) => i !== idx));
+    if (editingItemIndex === idx) {
+      setEditingItemIndex(null);
+      setCreateItemForm({ idCategoria: "", nombreProducto: "", marca: "", modelo: "", referencia: "", observaciones: "", cantidadEsperada: 1 });
+    }
   };
 
   const openEditOC = (oc: OrdenCompra) => {
@@ -143,6 +175,18 @@ function Page() {
     }
     setOcForm({ numeroOC: oc.numeroOC, proveedor: oc.proveedor, total: oc.total, observaciones: oc.observaciones, motivoEdicion: "" });
     setEditingOC(oc);
+    const items = ((oc as any).itemsOC ?? []).map((i: any) => ({
+      idItemOC: i.idItemOC,
+      idCategoria: i.idCategoria,
+      nombreProducto: i.nombreProducto,
+      marca: i.marca,
+      modelo: i.modelo,
+      referencia: i.referencia,
+      observaciones: i.observaciones,
+      cantidadEsperada: i.cantidadEsperada,
+    }));
+    setCreateItems(items);
+    setEditingItemIndex(null);
     setOcFormOpen(true);
   };
 
@@ -151,6 +195,18 @@ function Page() {
     const oc = pendingEditOC;
     setOcForm({ numeroOC: oc.numeroOC, proveedor: oc.proveedor, total: oc.total, observaciones: oc.observaciones, motivoEdicion: editReason });
     setEditingOC(oc);
+    const items = ((oc as any).itemsOC ?? []).map((i: any) => ({
+      idItemOC: i.idItemOC,
+      idCategoria: i.idCategoria,
+      nombreProducto: i.nombreProducto,
+      marca: i.marca,
+      modelo: i.modelo,
+      referencia: i.referencia,
+      observaciones: i.observaciones,
+      cantidadEsperada: i.cantidadEsperada,
+    }));
+    setCreateItems(items);
+    setEditingItemIndex(null);
     setEditReasonOpen(false);
     setPendingEditOC(null);
     setOcFormOpen(true);
@@ -165,6 +221,26 @@ function Page() {
     try {
       if (editingOC) {
         await updateMutation.mutateAsync({ id: editingOC.idOrden, data: ocForm });
+        const originalItems = ((editingOC as any).itemsOC ?? []) as any[];
+        const originalIds = originalItems.map((i: any) => i.idItemOC);
+        const currentIds = createItems.filter((i) => i.idItemOC).map((i) => i.idItemOC!);
+        const removedIds = originalIds.filter((id: number) => !currentIds.includes(id));
+        for (const id of removedIds) {
+          await apiFetch(`/api/ItemsOC/${id}`, { method: "DELETE" });
+        }
+        for (const item of createItems) {
+          if (item.idItemOC) {
+            await apiFetch(`/api/ItemsOC/${item.idItemOC}`, {
+              method: "PUT",
+              body: JSON.stringify(item),
+            });
+          } else {
+            await apiFetch("/api/ItemsOC", {
+              method: "POST",
+              body: JSON.stringify({ idOrden: editingOC.idOrden, ...item }),
+            });
+          }
+        }
         toast.success("Orden actualizada");
       } else {
         const oc = await createMutation.mutateAsync(ocForm) as any;
@@ -174,9 +250,9 @@ function Page() {
             body: JSON.stringify({ idOrden: oc.idOrden, ...item }),
           });
         }
-        qc.invalidateQueries({ queryKey: keys.ordenes.all });
         toast.success("Orden creada");
       }
+      qc.invalidateQueries({ queryKey: keys.ordenes.all });
       setOcFormOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
@@ -242,6 +318,19 @@ function Page() {
     setSerialForItem({ idItemOC, nombre, maxSerials });
     setSerialInput("");
     setSerialBatch([]);
+    setExistingSerials([]);
+    setRemovedSerialIds([]);
+    setEditedSerials({});
+    setSerialFormOpen(true);
+  };
+
+  const openEditSerials = (idItemOC: number, nombre: string, maxSerials: number, detalles: any[]) => {
+    setSerialForItem({ idItemOC, nombre, maxSerials });
+    setExistingSerials(detalles.map((d: any) => ({ idDetalleItemOC: d.idDetalleItemOC, serial: d.serial })));
+    setEditedSerials({});
+    setRemovedSerialIds([]);
+    setSerialInput("");
+    setSerialBatch([]);
     setSerialFormOpen(true);
   };
 
@@ -261,17 +350,58 @@ function Page() {
     setSerialBatch((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const removeExistingSerial = (idDetalleItemOC: number) => {
+    setRemovedSerialIds((prev) => [...prev, idDetalleItemOC]);
+  };
+
+  const restoreExistingSerial = (idDetalleItemOC: number) => {
+    setRemovedSerialIds((prev) => prev.filter((id) => id !== idDetalleItemOC));
+  };
+
+  const updateExistingSerial = (idDetalleItemOC: number, value: string) => {
+    setEditedSerials((prev) => ({ ...prev, [idDetalleItemOC]: value }));
+  };
+
   const submitSerials = async () => {
-    if (!serialForItem || serialBatch.length === 0) {
-      toast.error("Agrega al menos un serial"); return;
+    if (!serialForItem) return;
+    const hasNewSerials = serialBatch.length > 0;
+    const hasRemoved = removedSerialIds.length > 0;
+    const hasUpdates = Object.keys(editedSerials).length > 0;
+    if (!hasNewSerials && !hasRemoved && !hasUpdates) {
+      toast.error("No hay cambios que guardar"); return;
     }
     setSubmitting(true);
+    let countAdded = 0;
+    let countDeleted = 0;
+    let countUpdated = 0;
     try {
-      await apiFetch("/api/DetallesItemOC/batch", {
-        method: "POST",
-        body: JSON.stringify({ idItemOC: serialForItem.idItemOC, seriales: serialBatch }),
-      });
-      toast.success(`${serialBatch.length} serial(es) registrado(s)`);
+      if (hasNewSerials) {
+        await apiFetch("/api/DetallesItemOC/batch", {
+          method: "POST",
+          body: JSON.stringify({ idItemOC: serialForItem.idItemOC, seriales: serialBatch }),
+        });
+        countAdded = serialBatch.length;
+      }
+      if (hasRemoved) {
+        for (const id of removedSerialIds) {
+          await apiFetch(`/api/DetallesItemOC/${id}`, { method: "DELETE" });
+          countDeleted++;
+        }
+      }
+      if (hasUpdates) {
+        for (const [id, serial] of Object.entries(editedSerials)) {
+          await apiFetch(`/api/DetallesItemOC/${id}`, {
+            method: "PUT",
+            body: JSON.stringify({ serial }),
+          });
+          countUpdated++;
+        }
+      }
+      const parts: string[] = [];
+      if (countAdded > 0) parts.push(`${countAdded} agregado(s)`);
+      if (countUpdated > 0) parts.push(`${countUpdated} actualizado(s)`);
+      if (countDeleted > 0) parts.push(`${countDeleted} eliminado(s)`);
+      toast.success(`Seriales guardados: ${parts.join(", ")}`);
       setSerialFormOpen(false);
       qc.invalidateQueries({ queryKey: keys.ordenes.all });
       qc.invalidateQueries({ queryKey: keys.itemsOC.all });
@@ -558,7 +688,7 @@ function Page() {
 
       {/* OC Create/Edit Dialog */}
       <Dialog open={ocFormOpen} onOpenChange={setOcFormOpen}>
-        <DialogContent className={editingOC ? "max-w-lg" : "w-full max-w-2xl max-h-[90vh] overflow-y-auto"}>
+        <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingOC ? "Editar orden" : "Nueva orden de compra"}</DialogTitle>
             <DialogDescription>Ingresa los datos de la orden de compra.</DialogDescription>
@@ -584,12 +714,11 @@ function Page() {
               </div>
             </div>
 
-            {/* Items section — only for new OC */}
-            {!editingOC && (
-              <>
-                <hr />
-                <div>
-                  <h4 className="text-sm font-semibold mb-3">Ítems de la orden</h4>
+            {/* Items section */}
+            <>
+              <hr />
+              <div>
+                <h4 className="text-sm font-semibold mb-3">Ítems de la orden</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                     <div className="space-y-2">
                       <Label>Categoría <span className="text-destructive">*</span></Label>
@@ -627,29 +756,40 @@ function Page() {
                       <Textarea value={createItemForm.observaciones} onChange={(e) => setCreateItemForm((s) => ({ ...s, observaciones: e.target.value }))} rows={2} />
                     </div>
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={addItemToCreateList}>
-                    <Plus className="h-3 w-3" /> Agregar ítem
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={addItemToCreateList}>
+                      <Plus className="h-3 w-3" /> {editingItemIndex !== null ? "Actualizar ítem" : "Agregar ítem"}
+                    </Button>
+                    {editingItemIndex !== null && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => { setEditingItemIndex(null); setCreateItemForm({ idCategoria: "", nombreProducto: "", marca: "", modelo: "", referencia: "", observaciones: "", cantidadEsperada: 1 }); }}>
+                        Cancelar edición
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Added items list */}
                 {createItems.length > 0 && (
                   <div className="border rounded-lg divide-y max-h-48 overflow-y-auto">
                     {createItems.map((item, i) => (
-                      <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                      <div key={i} className={`flex items-center justify-between gap-2 px-3 py-2 text-sm ${editingItemIndex === i ? "ring-1 ring-primary/30 rounded" : ""}`}>
                         <div className="min-w-0 flex-1">
                           <span className="font-medium">{item.nombreProducto}</span>
                           <span className="text-muted-foreground text-xs ml-2">{item.marca} / {item.modelo} × {item.cantidadEsperada}</span>
                         </div>
-                        <button type="button" onClick={() => removeItemFromCreateList(i)} className="text-destructive hover:text-destructive/80 shrink-0" aria-label="Quitar ítem">
-                          <X className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button type="button" onClick={() => loadItemToForm(i)} className="text-muted-foreground hover:text-primary text-xs" aria-label="Editar ítem">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button type="button" onClick={() => removeItemFromCreateList(i)} className="text-destructive hover:text-destructive/80" aria-label="Quitar ítem">
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
-              </>
-            )}
+            </>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOcFormOpen(false)} disabled={submitting}>Cancelar</Button>
@@ -808,7 +948,7 @@ function Page() {
                                 </TableCell>
                                 <TableCell className="text-right">
                                   {canEdit && (
-                                    <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Editar seriales" onClick={() => { const id = item.idItemOC; const nombre = item.nombreProducto; const remaining = Math.max(0, item.cantidadEsperada - serialesCount); openAddSerials(id, nombre, remaining); }}>
+                                    <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Editar seriales" onClick={() => { const id = item.idItemOC; const nombre = item.nombreProducto; const remaining = Math.max(0, item.cantidadEsperada - serialesCount); openEditSerials(id, nombre, remaining, detalles); }}>
                                       <Pencil className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
@@ -888,12 +1028,46 @@ function Page() {
 
       {/* Serial form Dialog */}
       <Dialog open={serialFormOpen} onOpenChange={setSerialFormOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Registrar seriales</DialogTitle>
-            <DialogDescription>Agrega seriales para: {serialForItem?.nombre}{serialForItem ? ` (máx. ${serialForItem.maxSerials})` : ""}</DialogDescription>
+            <DialogTitle>Gestionar seriales</DialogTitle>
+            <DialogDescription>
+              {serialForItem?.nombre}{serialForItem ? ` (máx. ${serialForItem.maxSerials})` : ""}
+              {existingSerials.length > 0 ? ` · ${existingSerials.length} existente(s)` : ""}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Existing serials */}
+            {existingSerials.length > 0 && (
+              <div className="border rounded-lg p-3 space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground">Seriales existentes</p>
+                {existingSerials.map((es) => {
+                  const isRemoved = removedSerialIds.includes(es.idDetalleItemOC);
+                  const editedValue = editedSerials[es.idDetalleItemOC] ?? es.serial;
+                  return (
+                    <div key={es.idDetalleItemOC} className={`flex items-center gap-2 text-sm px-2 py-1.5 rounded ${isRemoved ? "bg-destructive/10 line-through opacity-50" : "bg-muted/30"}`}>
+                      <Input
+                        value={editedValue}
+                        onChange={(e) => updateExistingSerial(es.idDetalleItemOC, e.target.value)}
+                        disabled={isRemoved}
+                        className="h-7 font-mono text-xs flex-1 min-w-0"
+                      />
+                      {isRemoved ? (
+                        <button onClick={() => restoreExistingSerial(es.idDetalleItemOC)} className="text-xs text-primary hover:text-primary/80 shrink-0">
+                          Restaurar
+                        </button>
+                      ) : (
+                        <button onClick={() => removeExistingSerial(es.idDetalleItemOC)} className="text-destructive hover:text-destructive/80 text-xs shrink-0">
+                          Quitar
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Add new serials */}
             <div className="flex gap-2">
               <Input
                 value={serialInput}
@@ -904,9 +1078,9 @@ function Page() {
               <Button type="button" variant="outline" onClick={addSerialToBatch}>Agregar</Button>
             </div>
             {serialBatch.length > 0 && (
-              <div className="border rounded-lg p-3 space-y-2 max-h-48 overflow-y-auto">
+              <div className="border rounded-lg p-3 space-y-2 max-h-36 overflow-y-auto">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold text-muted-foreground">Seriales a registrar ({serialBatch.length})</p>
+                  <p className="text-xs font-semibold text-muted-foreground">Nuevos a registrar ({serialBatch.length})</p>
                   {serialForItem && (
                     <span className="text-xs text-muted-foreground">
                       {serialForItem.maxSerials - serialBatch.length} restantes
@@ -923,9 +1097,9 @@ function Page() {
             )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setSerialFormOpen(false)} disabled={submitting}>Cancelar</Button>
-              <Button type="button" variant="brand" onClick={submitSerials} disabled={submitting || serialBatch.length === 0}>
+              <Button type="button" variant="brand" onClick={submitSerials} disabled={submitting}>
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Guardar {serialBatch.length > 0 ? `(${serialBatch.length})` : ""}
+                Guardar cambios
               </Button>
             </DialogFooter>
           </div>
