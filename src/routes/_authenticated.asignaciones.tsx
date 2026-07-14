@@ -48,7 +48,7 @@ function Page() {
       isLoading={isLoading}
       idKey="idAsignacion"
       singular="asignación"
-      searchKeys={["estadoAsignacion"]}
+      searchKeys={["nombreUsuarioDestino", "serial", "codigoActivo", "nombreCanal", "nombreParqueadero", "nombreUsuarioEntrega", "registroSalida", "numeroTicket", "estadoAsignacion"]}
       filterFn={filterFn}
       filters={
         <div className="flex items-center gap-2">

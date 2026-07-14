@@ -292,7 +292,19 @@ export function useAsignaciones() {
   return useList<AsignacionUsuario>(keys.asignaciones.all, "/api/AsignacionesUsuario");
 }
 export function useCreateAsignacion() {
-  return useCreate<AsignacionUsuario>(keys.asignaciones.all, "/api/AsignacionesUsuario");
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<AsignacionUsuario>) =>
+      apiFetch<AsignacionUsuario>("/api/AsignacionesUsuario", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.asignaciones.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.activos.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.movimientos.all as unknown as string[] });
+    },
+  });
 }
 export function useUpdateAsignacion() {
   const qc = useQueryClient();
@@ -304,6 +316,8 @@ export function useUpdateAsignacion() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.asignaciones.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.activos.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.movimientos.all as unknown as string[] });
     },
   });
 }
@@ -316,7 +330,16 @@ export function useAsignacionesPorActivo(idActivo: number | null) {
 }
 
 export function useDeleteAsignacion() {
-  return useDelete(keys.asignaciones.all, "/api/AsignacionesUsuario");
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiFetch<void>(`/api/AsignacionesUsuario/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.asignaciones.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.activos.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.movimientos.all as unknown as string[] });
+    },
+  });
 }
 
 // ---- Movimientos (HistorialActivo) ----
