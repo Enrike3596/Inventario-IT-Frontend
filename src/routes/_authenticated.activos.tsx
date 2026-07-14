@@ -38,14 +38,23 @@ export const Route = createFileRoute("/_authenticated/activos")({
   component: ActivosPage,
 });
 
+const estadoLabels: Record<string, string> = {
+  Disponible: "Disponible",
+  Asignado: "Asignado",
+  EnReparacion: "En reparación",
+  DadoDeBaja: "Dado de baja",
+  Venta: "Venta",
+};
+
 const estadoTint: Record<string, string> = {
   Disponible: "bg-success/15 text-success border-success/30",
   Asignado: "bg-primary/15 text-primary border-primary/30",
-  EnMantenimiento: "bg-warning/15 text-warning border-warning/30",
+  EnReparacion: "bg-warning/15 text-warning border-warning/30",
   DadoDeBaja: "bg-destructive/15 text-destructive border-destructive/30",
+  Venta: "bg-muted/50 text-muted-foreground border-border",
 };
 
-const ESTADOS_ACTIVO = ["Disponible", "Asignado", "EnMantenimiento", "DadoDeBaja"] as const;
+const ESTADOS_ACTIVO = ["Disponible", "Asignado", "EnReparacion", "DadoDeBaja", "Venta"] as const;
 
 function generateCodigoActivo(ocNumero?: string, marca?: string, modelo?: string, serial?: string): string {
   const ocPart = ocNumero?.replace(/[^0-9A-Za-z]/g, "").slice(-4).toUpperCase() ?? "XXXX";
@@ -351,7 +360,7 @@ function ActivoFormContent({
             <SelectContent>
               {ESTADOS_ACTIVO.map((e) => (
                 <SelectItem key={e} value={e}>
-                  {e === "Disponible" ? "Disponible" : e === "Asignado" ? "Asignado" : e === "EnMantenimiento" ? "En mantenimiento" : "Dado de baja"}
+                  {e === "Disponible" ? "Disponible" : e === "Asignado" ? "Asignado" : e === "EnReparacion" ? "En reparación" : e === "DadoDeBaja" ? "Dado de baja" : "Venta"}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -425,7 +434,7 @@ function ActivosPage() {
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 {ESTADOS_ACTIVO.map((e) => (
-                  <SelectItem key={e} value={e}>{e}</SelectItem>
+                  <SelectItem key={e} value={e}>{estadoLabels[e] ?? e}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -445,7 +454,7 @@ function ActivosPage() {
             header: "Estado",
             render: (r) => (
               <Badge variant="outline" className={estadoTint[r.estadoActivo]}>
-                {r.estadoActivo}
+                {estadoLabels[r.estadoActivo] ?? r.estadoActivo}
               </Badge>
             ),
           },
@@ -478,8 +487,9 @@ function ActivosPage() {
             options: [
               { value: "Disponible", label: "Disponible" },
               { value: "Asignado", label: "Asignado" },
-              { value: "EnMantenimiento", label: "En mantenimiento" },
+              { value: "EnReparacion", label: "En reparación" },
               { value: "DadoDeBaja", label: "Dado de baja" },
+              { value: "Venta", label: "Venta" },
             ],
           },
           { key: "observaciones", label: "Observaciones", type: "textarea" },

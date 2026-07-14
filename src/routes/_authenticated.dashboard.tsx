@@ -19,8 +19,9 @@ function Dashboard() {
 
   const disponibles = (activos ?? []).filter((a) => a.estadoActivo === "Disponible").length;
   const asignados = (activos ?? []).filter((a) => a.estadoActivo === "Asignado").length;
-  const mantenimiento = (activos ?? []).filter((a) => a.estadoActivo === "EnMantenimiento").length;
+  const mantenimiento = (activos ?? []).filter((a) => a.estadoActivo === "EnReparacion").length;
   const baja = (activos ?? []).filter((a) => a.estadoActivo === "DadoDeBaja").length;
+  const venta = (activos ?? []).filter((a) => a.estadoActivo === "Venta").length;
 
   const stats = [
     {
@@ -112,6 +113,12 @@ function Dashboard() {
                   value={baja}
                   total={(activos ?? []).length}
                   color="var(--destructive)"
+                />
+                <StatusBar
+                  label="Venta"
+                  value={venta}
+                  total={(activos ?? []).length}
+                  color="var(--muted-foreground)"
                 />
               </div>
             </CardContent>

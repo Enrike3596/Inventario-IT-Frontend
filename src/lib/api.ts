@@ -24,7 +24,7 @@ export class ApiError extends Error {
 
 const enumValues = {
   EstadoGenerico: ["Activo", "Inactivo"] as const,
-  EstadoActivo: ["Disponible", "Asignado", "EnMantenimiento", "DadoDeBaja"] as const,
+  EstadoActivo: ["Disponible", "Asignado", "EnReparacion", "DadoDeBaja", "Venta"] as const,
   EstadoAsignacion: ["Activa", "Finalizada"] as const,
   TipoMovimiento: ["Entrada", "Salida", "Asignacion", "Devolucion"] as const,
 };

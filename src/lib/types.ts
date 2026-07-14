@@ -1,7 +1,7 @@
 // Domain types matching the .NET response DTOs (camelCase JSON).
 
 export type EstadoGenerico = "Activo" | "Inactivo";
-export type EstadoActivo = "Disponible" | "Asignado" | "EnMantenimiento" | "DadoDeBaja";
+export type EstadoActivo = "Disponible" | "Asignado" | "EnReparacion" | "DadoDeBaja" | "Venta";
 export type EstadoAsignacion = "Activa" | "Finalizada";
 export type TipoMovimiento = "Entrada" | "Salida" | "Asignacion" | "Devolucion";
 
@@ -124,8 +124,7 @@ export interface Canal {
 export interface Salida {
   idSalida: number;
   codigoUnico: string;
-  idUsuarioDestino: number | null;
-  nombreUsuarioDestino?: string;
+  estadoActivo: EstadoActivo;
   fechaSalida: string;
   observaciones: string | null;
 }

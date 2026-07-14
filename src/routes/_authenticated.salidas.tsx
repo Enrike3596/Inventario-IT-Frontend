@@ -5,19 +5,31 @@ import {
   useCreateSalida,
   useUpdateSalida,
   useDeleteSalida,
-  useUsuarios,
   useActivos,
 } from "@/lib/queries";
-import type { Salida } from "@/lib/types";
+import type { Salida, EstadoActivo } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/salidas")({
   head: () => ({ meta: [{ title: "Salidas — Indigo" }] }),
   component: Page,
 });
 
+const estadoOptions: { value: EstadoActivo; label: string }[] = [
+  { value: "EnReparacion", label: "En reparación" },
+  { value: "DadoDeBaja", label: "Dado de baja" },
+  { value: "Venta", label: "Venta" },
+];
+
+const estadoLabels: Record<EstadoActivo, string> = {
+  Disponible: "Disponible",
+  Asignado: "Asignado",
+  EnReparacion: "En reparación",
+  DadoDeBaja: "Dado de baja",
+  Venta: "Venta",
+};
+
 function Page() {
   const { data: salidas, isLoading } = useSalidas();
-  const { data: usuarios } = useUsuarios();
   const { data: activos } = useActivos();
   const createMutation = useCreateSalida();
   const updateMutation = useUpdateSalida();
@@ -40,17 +52,19 @@ function Page() {
       defaultValues={{}}
       columns={[
         { header: "Fecha", render: (s) => new Date(s.fechaSalida).toLocaleDateString("es-CO") },
-        { header: "Observaciones", render: (s) => s.observaciones ?? "—" },
+        {
+          header: "Estado",
+          render: (s) => estadoLabels[s.estadoActivo] ?? s.estadoActivo,
+        },
+        { header: "Comentarios", render: (s) => s.observaciones ?? "—" },
       ]}
       fields={[
         {
-          key: "idUsuarioDestino",
-          label: "Usuario destino",
+          key: "estadoActivo",
+          label: "Estado del activo",
           type: "select",
-          options: [
-            { value: "" as unknown as number, label: "— Ninguno —" },
-            ...(usuarios ?? []).map((u) => ({ value: u.idUsuario, label: u.nombre })),
-          ],
+          required: true,
+          options: estadoOptions,
         },
         {
           key: "idActivo",
@@ -59,13 +73,12 @@ function Page() {
           required: true,
           options: activosOptions,
         },
-        { key: "observaciones", label: "Observaciones", type: "textarea" },
+        { key: "observaciones", label: "Comentarios", type: "textarea", required: true },
       ]}
       transformCreate={(data) => {
         const d = data as Record<string, unknown>;
         return {
           ...d,
-          idUsuarioDestino: d.idUsuarioDestino === "" ? null : d.idUsuarioDestino,
           activos: [{ idActivo: d.idActivo as number, cantidad: 1 }],
         } as Partial<Salida>;
       }}
