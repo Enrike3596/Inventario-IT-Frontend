@@ -273,15 +273,19 @@ function Page() {
       });
       toast.success(`${serialBatch.length} serial(es) registrado(s)`);
       setSerialFormOpen(false);
-      qc.invalidateQueries();
+      qc.invalidateQueries({ queryKey: keys.ordenes.all });
+      qc.invalidateQueries({ queryKey: keys.itemsOC.all });
+      qc.invalidateQueries({ queryKey: keys.detallesItemOC.all });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     } finally { setSubmitting(false); }
   };
 
+  const ingresadosCount = (item: any) => item.detallesItem?.length ?? item.cantidadIngresada ?? 0;
+
   const pendientes = (oc: OrdenCompra) => {
     const items = (oc as any).itemsOC ?? [];
-    return items.filter((i: any) => i.cantidadIngresada < i.cantidadEsperada).length;
+    return items.filter((i: any) => ingresadosCount(i) < i.cantidadEsperada).length;
   };
 
   const [query, setQuery] = useState("");
@@ -391,7 +395,7 @@ function Page() {
                   paginatedOC.map((oc) => {
                     const items = (oc as any).itemsOC ?? [];
                     const totalItems = items.reduce((a: number, i: any) => a + i.cantidadEsperada, 0);
-                    const ingresados = items.reduce((a: number, i: any) => a + i.cantidadIngresada, 0);
+                    const ingresados = items.reduce((a: number, i: any) => a + ingresadosCount(i), 0);
                     return (
                       <TableRow key={oc.idOrden} className="hover:bg-muted/30">
                         <TableCell className="font-mono text-xs">{oc.numeroOC}</TableCell>
@@ -448,7 +452,7 @@ function Page() {
             paginatedOC.map((oc) => {
               const items = (oc as any).itemsOC ?? [];
               const totalItems = items.reduce((a: number, i: any) => a + i.cantidadEsperada, 0);
-              const ingresados = items.reduce((a: number, i: any) => a + i.cantidadIngresada, 0);
+              const ingresados = items.reduce((a: number, i: any) => a + ingresadosCount(i), 0);
               return (
                 <Card key={oc.idOrden} className="p-3">
                   <div className="space-y-2">
@@ -669,7 +673,7 @@ function Page() {
             const data = detailData ?? detailView!;
             const items = (data as any).itemsOC ?? [];
             const totalItems = items.reduce((a: number, i: any) => a + i.cantidadEsperada, 0);
-            const ingresados = items.reduce((a: number, i: any) => a + i.cantidadIngresada, 0);
+            const ingresados = items.reduce((a: number, i: any) => a + ingresadosCount(i), 0);
             return (
               <div className="space-y-6">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
@@ -727,7 +731,8 @@ function Page() {
                         <TableBody>
                           {items.map((item: any) => {
                             const detalles = item.detallesItem ?? [];
-                            const completo = item.cantidadIngresada >= item.cantidadEsperada;
+                            const serialesCount = detalles.length;
+                            const completo = serialesCount >= item.cantidadEsperada;
                             return (
                               <TableRow key={item.idItemOC} className="hover:bg-muted/30">
                                 <TableCell>
@@ -762,13 +767,13 @@ function Page() {
                                 <TableCell>
                                   <div className="flex items-center gap-2">
                                     <span className={`text-xs font-medium ${completo ? "text-success" : ""}`}>
-                                      {item.cantidadIngresada}/{item.cantidadEsperada}
+                                      {serialesCount}/{item.cantidadEsperada}
                                     </span>
                                     {completo ? (
                                       <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-success/15 text-success">
                                         Completo
                                       </Badge>
-                                    ) : item.cantidadIngresada > 0 ? (
+                                    ) : serialesCount > 0 ? (
                                       <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-warning/15 text-warning">
                                         Parcial
                                       </Badge>
@@ -795,16 +800,16 @@ function Page() {
                                       <span className="text-xs text-muted-foreground">—</span>
                                     )}
                                     {canCreate && !completo && (
-                                      <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => { const id = item.idItemOC; const nombre = item.nombreProducto; const remaining = Math.max(0, item.cantidadEsperada - item.cantidadIngresada); setDetailView(null); openAddSerials(id, nombre, remaining); }}>
+                                      <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => { const id = item.idItemOC; const nombre = item.nombreProducto; const remaining = Math.max(0, item.cantidadEsperada - serialesCount); openAddSerials(id, nombre, remaining); }}>
                                         <ScanLine className="h-3 w-3 mr-0.5" /> +
                                       </Button>
                                     )}
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  {canDelete && (
-                                    <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Eliminar item">
-                                      <Trash2 className="h-3.5 w-3.5" />
+                                  {canEdit && (
+                                    <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Editar seriales" onClick={() => { const id = item.idItemOC; const nombre = item.nombreProducto; const remaining = Math.max(0, item.cantidadEsperada - serialesCount); openAddSerials(id, nombre, remaining); }}>
+                                      <Pencil className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
                                 </TableCell>
