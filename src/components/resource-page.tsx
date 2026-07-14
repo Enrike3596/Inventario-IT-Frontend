@@ -45,6 +45,16 @@ import { cn } from "@/lib/utils";
 
 const PAGE_SIZES = [10, 20, 30, 50, 100] as const;
 
+export type CustomFormProps<T> = {
+  form: Record<string, unknown>;
+  setForm: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
+  editing: T | null;
+  submitting: boolean;
+  submit: (e: React.FormEvent) => Promise<void>;
+  fields: FieldDef[];
+  setOpen: (open: boolean) => void;
+};
+
 export type FieldDef =
   | {
       key: string;
@@ -93,6 +103,7 @@ interface ResourcePageProps<T> {
   filterFn?: (item: T) => boolean;
   module?: string;
   extraActions?: (row: T) => ReactNode;
+  renderCustomForm?: (props: CustomFormProps<T>) => ReactNode;
 }
 
 export function ResourcePage<T>({
@@ -118,6 +129,7 @@ export function ResourcePage<T>({
   filterFn,
   module,
   extraActions,
+  renderCustomForm,
 }: ResourcePageProps<T>) {
   const { can, user } = useAuth();
   const [query, setQuery] = useState("");
@@ -461,80 +473,84 @@ export function ResourcePage<T>({
                 : "Completa el formulario para crear un registro."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={submit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {fields.map((f) => (
-                <div
-                  key={f.key}
-                  className={f.type === "textarea" ? "sm:col-span-2 space-y-2" : "space-y-2"}
+          {renderCustomForm ? (
+            renderCustomForm({ form, setForm, editing, submitting, submit, fields, setOpen })
+          ) : (
+            <form onSubmit={submit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {fields.map((f) => (
+                  <div
+                    key={f.key}
+                    className={f.type === "textarea" ? "sm:col-span-2 space-y-2" : "space-y-2"}
+                  >
+                    <Label htmlFor={f.key}>
+                      {f.label}
+                      {f.required && <span className="text-destructive"> *</span>}
+                    </Label>
+                    {f.type === "textarea" ? (
+                      <Textarea
+                        id={f.key}
+                        value={String(form[f.key] ?? "")}
+                        onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
+                        placeholder={f.placeholder}
+                        rows={3}
+                      />
+                    ) : f.type === "select" ? (
+                      <Select
+                        value={
+                          form[f.key] !== undefined && form[f.key] !== ""
+                            ? String(form[f.key])
+                            : undefined
+                        }
+                        onValueChange={(v) => {
+                          const opt = f.options.find((o) => String(o.value) === v);
+                          setForm((s) => ({ ...s, [f.key]: opt ? opt.value : v }));
+                        }}
+                      >
+                        <SelectTrigger id={f.key}>
+                          <SelectValue placeholder="Selecciona..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {f.options.map((o) => (
+                            <SelectItem key={String(o.value)} value={String(o.value)}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        id={f.key}
+                        type={f.type}
+                        value={String(form[f.key] ?? "")}
+                        onChange={(e) =>
+                          setForm((s) => ({
+                            ...s,
+                            [f.key]: f.type === "number" ? Number(e.target.value) : e.target.value,
+                          }))
+                        }
+                        placeholder={f.placeholder}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  disabled={submitting}
                 >
-                  <Label htmlFor={f.key}>
-                    {f.label}
-                    {f.required && <span className="text-destructive"> *</span>}
-                  </Label>
-                  {f.type === "textarea" ? (
-                    <Textarea
-                      id={f.key}
-                      value={String(form[f.key] ?? "")}
-                      onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
-                      placeholder={f.placeholder}
-                      rows={3}
-                    />
-                  ) : f.type === "select" ? (
-                    <Select
-                      value={
-                        form[f.key] !== undefined && form[f.key] !== ""
-                          ? String(form[f.key])
-                          : undefined
-                      }
-                      onValueChange={(v) => {
-                        const opt = f.options.find((o) => String(o.value) === v);
-                        setForm((s) => ({ ...s, [f.key]: opt ? opt.value : v }));
-                      }}
-                    >
-                      <SelectTrigger id={f.key}>
-                        <SelectValue placeholder="Selecciona..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {f.options.map((o) => (
-                          <SelectItem key={String(o.value)} value={String(o.value)}>
-                            {o.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      id={f.key}
-                      type={f.type}
-                      value={String(form[f.key] ?? "")}
-                      onChange={(e) =>
-                        setForm((s) => ({
-                          ...s,
-                          [f.key]: f.type === "number" ? Number(e.target.value) : e.target.value,
-                        }))
-                      }
-                      placeholder={f.placeholder}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-                disabled={submitting}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" variant="brand" disabled={submitting}>
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {editing ? "Guardar cambios" : "Crear"}
-              </Button>
-            </DialogFooter>
-          </form>
+                  Cancelar
+                </Button>
+                <Button type="submit" variant="brand" disabled={submitting}>
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {editing ? "Guardar cambios" : "Crear"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 

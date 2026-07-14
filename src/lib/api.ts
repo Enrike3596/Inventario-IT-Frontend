@@ -83,12 +83,27 @@ export async function apiFetch<T = unknown>(path: string, init: RequestInit = {}
   if (res.status === 204) return undefined as T;
   const body = await res.json();
   if (!res.ok) {
-    const msg = body?.mensaje ?? body?.detail ?? body?.title ?? res.statusText;
+    const msg = sanitizeError(body?.mensaje ?? body?.detail ?? body?.title ?? res.statusText);
     throw new ApiError(msg, res.status);
   }
   const response = body as ApiResponse<T>;
   if (response.exito === true) {
     return deepMapEnums(response.data) as T;
   }
-  throw new ApiError(response.mensaje ?? "Error desconocido", res.status);
+  throw new ApiError(sanitizeError(response.mensaje ?? "Error desconocido"), res.status);
+}
+
+const verbosePatterns = [
+  "See the inner exception for details.",
+  "An error occurred while saving the entity changes",
+  "inner exception",
+  "Exception of type",
+];
+
+export function sanitizeError(msg: string): string {
+  const lower = msg.toLowerCase();
+  if (verbosePatterns.some((p) => lower.includes(p.toLowerCase()))) {
+    return "Error interno del servidor. Contacte al administrador.";
+  }
+  return msg;
 }
