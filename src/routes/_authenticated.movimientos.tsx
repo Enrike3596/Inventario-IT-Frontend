@@ -15,9 +15,20 @@ export const Route = createFileRoute("/_authenticated/movimientos")({
 
 const tipoTint: Record<string, string> = {
   Entrada: "bg-success/15 text-success border-success/30",
-  Salida: "bg-warning/15 text-warning border-warning/30",
   Asignacion: "bg-primary/15 text-primary border-primary/30",
   Devolucion: "bg-accent/40 text-accent-foreground border-accent",
+};
+
+const salidaEstadoLabels: Record<string, string> = {
+  EnReparacion: "En reparación",
+  DadoDeBaja: "Dado de baja",
+  Venta: "Venta",
+};
+
+const salidaEstadoTint: Record<string, string> = {
+  EnReparacion: "bg-warning/15 text-warning border-warning/30",
+  DadoDeBaja: "bg-destructive/15 text-destructive border-destructive/30",
+  Venta: "bg-muted/50 text-muted-foreground border-border",
 };
 
 const TIPOS_MOVIMIENTO = ["Entrada", "Salida", "Asignacion", "Devolucion"] as const;
@@ -64,11 +75,20 @@ function Page() {
         { header: "Fecha", render: (m) => new Date(m.fechaMovimiento).toLocaleDateString("es-CO") },
         {
           header: "Tipo",
-          render: (m) => (
-            <Badge variant="outline" className={tipoTint[m.tipoMovimiento]}>
-              {m.tipoMovimiento}
-            </Badge>
-          ),
+          render: (m) => {
+            if (m.tipoMovimiento === "Salida" && m.estadoActivoSalida) {
+              return (
+                <Badge variant="outline" className={salidaEstadoTint[m.estadoActivoSalida]}>
+                  {salidaEstadoLabels[m.estadoActivoSalida] ?? m.estadoActivoSalida}
+                </Badge>
+              );
+            }
+            return (
+              <Badge variant="outline" className={tipoTint[m.tipoMovimiento]}>
+                {m.tipoMovimiento}
+              </Badge>
+            );
+          },
         },
         {
           header: "Activo",
@@ -77,7 +97,8 @@ function Page() {
             return a ? `${a.serial} — ${a.marca} ${a.modelo}` : `#${m.idActivo}`;
           },
         },
-        { header: "Serial", render: (m) => m.serial ?? "—" },
+        { header: "Comentarios", render: (m) => m.observaciones ?? "—", className: "max-w-xs truncate" },
+        { header: "Serial", render: (m) => m.serial ?? "—", showOnlyInView: true },
       ]}
       fields={[
         {

@@ -78,6 +78,7 @@ export interface Column<T> {
   render?: (row: T) => ReactNode;
   className?: string;
   hideOnMobile?: boolean;
+  showOnlyInView?: boolean;
 }
 
 interface ResourcePageProps<T> {
@@ -245,6 +246,8 @@ export function ResourcePage<T>({
     }
   };
 
+  const tableColumns = useMemo(() => columns.filter((c) => !c.showOnlyInView), [columns]);
+
   const canCreate = can("create", module);
   const canEdit = can("edit", module);
   const canDelete = can("delete", module);
@@ -292,7 +295,7 @@ export function ResourcePage<T>({
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">
-                  {columns.map((c, i) => (
+                  {tableColumns.map((c, i) => (
                     <TableHead key={i} className={cn(c.className, c.hideOnMobile && "hidden md:table-cell")}>
                       {c.header}
                     </TableHead>
@@ -303,14 +306,14 @@ export function ResourcePage<T>({
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={columns.length + 1} className="text-center py-10">
+                    <TableCell colSpan={tableColumns.length + 1} className="text-center py-10">
                       <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={columns.length + 1}
+                      colSpan={tableColumns.length + 1}
                       className="text-center text-sm text-muted-foreground py-10"
                     >
                       Sin registros
@@ -319,7 +322,7 @@ export function ResourcePage<T>({
                 ) : (
                   paginated.map((row) => (
                     <TableRow key={String(row[idKey])} className="hover:bg-muted/30">
-                      {columns.map((c, i) => (
+                      {tableColumns.map((c, i) => (
                         <TableCell key={i} className={cn(c.className, c.hideOnMobile && "hidden md:table-cell")}>
                           {c.render ? c.render(row) : String(row[c.key as keyof T] ?? "")}
                         </TableCell>

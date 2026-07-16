@@ -121,12 +121,29 @@ export interface Canal {
   fechaSolicitud: string;
 }
 
+export interface SalidaActivo {
+  idActivo: number;
+  cantidad: number;
+  codigoActivo?: string;
+  serial?: string;
+  marca?: string;
+  modelo?: string;
+  nombreCategoria?: string;
+}
+
 export interface Salida {
   idSalida: number;
   codigoUnico: string;
   estadoActivo: EstadoActivo;
   fechaSalida: string;
   observaciones: string | null;
+  idActivo?: number;
+  codigoActivo?: string;
+  serial?: string;
+  marca?: string;
+  modelo?: string;
+  nombreCategoria?: string;
+  activos?: SalidaActivo[];
 }
 
 export interface AsignacionUsuario {
@@ -156,6 +173,8 @@ export interface Movimiento {
   serial?: string;
   idSalida: number;
   codigoSalida?: string;
+  estadoActivoSalida?: string;
+  observaciones?: string;
   tipoMovimiento: TipoMovimiento;
   fechaMovimiento: string;
   idUsuarioEntrega: number;

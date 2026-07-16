@@ -8,6 +8,7 @@ import {
   useActivos,
 } from "@/lib/queries";
 import type { Salida, EstadoActivo } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/salidas")({
   head: () => ({ meta: [{ title: "Salidas — Indigo" }] }),
@@ -28,6 +29,14 @@ const estadoLabels: Record<EstadoActivo, string> = {
   Venta: "Venta",
 };
 
+const estadoTint: Record<EstadoActivo, string> = {
+  Disponible: "bg-success/15 text-success border-success/30",
+  Asignado: "bg-primary/15 text-primary border-primary/30",
+  EnReparacion: "bg-warning/15 text-warning border-warning/30",
+  DadoDeBaja: "bg-destructive/15 text-destructive border-destructive/30",
+  Venta: "bg-muted/50 text-muted-foreground border-border",
+};
+
 function Page() {
   const { data: salidas, isLoading } = useSalidas();
   const { data: activos } = useActivos();
@@ -36,7 +45,6 @@ function Page() {
   const deleteMutation = useDeleteSalida();
 
   const activosOptions = (activos ?? [])
-    .filter((a) => a.estadoActivo === "Disponible")
     .map((a) => ({ value: a.idActivo, label: `${a.serial} — ${a.marca} ${a.modelo}` }));
 
   return (
@@ -54,9 +62,22 @@ function Page() {
         { header: "Fecha", render: (s) => new Date(s.fechaSalida).toLocaleDateString("es-CO") },
         {
           header: "Estado",
-          render: (s) => estadoLabels[s.estadoActivo] ?? s.estadoActivo,
+          render: (s) => (
+            <Badge variant="outline" className={estadoTint[s.estadoActivo]}>
+              {estadoLabels[s.estadoActivo] ?? s.estadoActivo}
+            </Badge>
+          ),
         },
-        { header: "Comentarios", render: (s) => s.observaciones ?? "—" },
+        {
+          header: "Activo",
+          render: (s) => {
+            const a = s.activos?.[0];
+            return a
+              ? [a.serial, a.marca, a.modelo].filter(Boolean).join(" — ") || a.codigoActivo || "—"
+              : [s.codigoActivo, s.serial, s.marca, s.modelo].filter(Boolean).join(" — ") || "—";
+          },
+        },
+        { header: "Comentarios", render: (s) => s.observaciones ?? "—", className: "max-w-xs truncate" },
       ]}
       fields={[
         {
@@ -81,6 +102,21 @@ function Page() {
           ...d,
           activos: [{ idActivo: d.idActivo as number, cantidad: 1 }],
         } as Partial<Salida>;
+      }}
+      transformUpdate={(data) => {
+        const d = data as Record<string, unknown>;
+        return {
+          ...d,
+          activos: [{ idActivo: d.idActivo as number, cantidad: 1 }],
+        } as Partial<Salida>;
+      }}
+      transformEdit={(row) => {
+        const base = { ...row } as unknown as Record<string, unknown>;
+        const a = (row as Salida).activos?.[0];
+        if (a && base.idActivo === undefined) {
+          base.idActivo = a.idActivo;
+        }
+        return base;
       }}
       onCreate={(data) => createMutation.mutateAsync(data)}
       onUpdate={(id, data) => updateMutation.mutateAsync({ id, data })}
