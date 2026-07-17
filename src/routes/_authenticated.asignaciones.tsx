@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,30 @@ function ActivoCombobox({
   activosDisponibles: Activo[];
 }) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 0);
+    } else {
+      setSearch("");
+    }
+  }, [open]);
+
+  const filtered = useMemo(
+    () => activosDisponibles.filter((a) => {
+      const q = search.toLowerCase();
+      return (
+        a.serial.toLowerCase().includes(q) ||
+        a.marca.toLowerCase().includes(q) ||
+        a.modelo.toLowerCase().includes(q) ||
+        (a.codigoActivo ?? "").toLowerCase().includes(q)
+      );
+    }),
+    [activosDisponibles, search],
+  );
+
   const selected = activosDisponibles.find((a) => a.idActivo === value);
 
   return (
@@ -76,19 +100,29 @@ function ActivoCombobox({
           aria-expanded={open}
           className="w-full justify-between"
         >
-          {selected
-            ? `${selected.serial} — ${selected.marca} ${selected.modelo}`
-            : "Selecciona un activo..."}
+          <span className="truncate flex-1 min-w-0">
+            {selected
+              ? `${selected.serial} — ${selected.marca} ${selected.modelo}`
+              : "Selecciona un activo..."}
+          </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 max-h-[300px] overflow-y-auto">
-        <Command className="overflow-visible">
-          <CommandInput placeholder="Buscar activo..." />
-          <CommandList className="max-h-none overflow-y-visible">
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0 max-h-[380px]"
+        onWheel={(e) => e.stopPropagation()}
+      >
+        <Command className="w-full" shouldFilter={false}>
+          <CommandInput
+            ref={inputRef}
+            placeholder="Buscar activo..."
+            value={search}
+            onValueChange={setSearch}
+          />
+          <CommandList className="max-h-[340px]">
             <CommandEmpty>No se encontraron activos.</CommandEmpty>
             <CommandGroup>
-              {activosDisponibles.map((a) => (
+              {filtered.map((a) => (
                 <CommandItem
                   key={a.idActivo}
                   value={`${a.serial} ${a.marca} ${a.modelo} ${a.codigoActivo}`}
@@ -99,11 +133,11 @@ function ActivoCombobox({
                 >
                   <Check
                     className={cn(
-                      "mr-2 h-4 w-4",
+                      "mr-2 h-4 w-4 shrink-0",
                       value === a.idActivo ? "opacity-100" : "opacity-0",
                     )}
                   />
-                  {a.serial} — {a.marca} {a.modelo}
+                  <span className="truncate">{a.serial} — {a.marca} {a.modelo}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
