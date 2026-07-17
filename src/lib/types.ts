@@ -3,7 +3,7 @@
 export type EstadoGenerico = "Activo" | "Inactivo";
 export type EstadoActivo = "Disponible" | "Asignado" | "EnReparacion" | "DadoDeBaja" | "Venta";
 export type EstadoAsignacion = "Activa" | "Finalizada";
-export type TipoMovimiento = "Entrada" | "Salida" | "Asignacion" | "Devolucion";
+export type TipoMovimiento = "Entrada" | "Salida" | "Asignacion" | "Devolucion" | "Reparacion" | "Baja";
 
 export type RoleKey = "super_admin" | "coordinador" | "agente_soporte";
 
@@ -171,14 +171,23 @@ export interface Movimiento {
   idActivo: number;
   codigoActivo?: string;
   serial?: string;
-  idSalida: number;
+  idSalida?: number;
   codigoSalida?: string;
   estadoActivoSalida?: string;
   observaciones?: string;
   tipoMovimiento: TipoMovimiento;
   fechaMovimiento: string;
-  idUsuarioEntrega: number;
+  idUsuarioEntrega?: number;
   nombreUsuarioEntrega?: string;
+  idAsignacion?: number;
+  nombreUsuarioAsignado?: string;
+  registroSalidaAsignacion?: string;
+  estadoAnterior?: string;
+  estadoNuevo?: string;
+  fechaCreacion: string;
+  fechaModificacion?: string | null;
+  creadoPor?: number;
+  modificadoPor?: number;
 }
 
 export interface AuthUser {

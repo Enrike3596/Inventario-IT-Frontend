@@ -26,7 +26,7 @@ const enumValues = {
   EstadoGenerico: ["Activo", "Inactivo"] as const,
   EstadoActivo: ["Disponible", "Asignado", "EnReparacion", "DadoDeBaja", "Venta"] as const,
   EstadoAsignacion: ["Activa", "Finalizada"] as const,
-  TipoMovimiento: ["Entrada", "Salida", "Asignacion", "Devolucion"] as const,
+  TipoMovimiento: ["Entrada", "Salida", "Asignacion", "Devolucion", "Reparacion", "Baja"] as const,
 };
 
 function mapEnum<T extends string>(value: unknown, values: readonly T[]): T {

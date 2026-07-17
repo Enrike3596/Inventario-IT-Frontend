@@ -346,3 +346,11 @@ export function useDeleteAsignacion() {
 export function useMovimientos() {
   return useList<Movimiento>(keys.movimientos.all, "/api/HistorialActivo");
 }
+
+export function useMovimientosPorActivo(idActivo: number | null) {
+  return useQuery<Movimiento[]>({
+    queryKey: [...keys.movimientos.all, "activo", idActivo] as string[],
+    queryFn: () => apiFetch<Movimiento[]>(`/api/HistorialActivo/activo/${idActivo}`),
+    enabled: !!idActivo,
+  });
+}

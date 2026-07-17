@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { History, Loader2 } from "lucide-react";
+import { History, Loader2, ArrowRightFromLine, ArrowLeftToLine, Wrench, Trash2, Tags, ArrowDown, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { ResourcePage, type CustomFormProps } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
@@ -24,14 +24,14 @@ import {
   useCreateActivo,
   useUpdateActivo,
   useDeleteActivo,
-  useAsignacionesPorActivo,
+  useMovimientosPorActivo,
   useCategorias,
   useOrdenesCompra,
   useOrdenCompraDetail,
   useDetallesItemOCPorItem,
 } from "@/lib/queries";
 import { sanitizeError } from "@/lib/api";
-import type { Activo } from "@/lib/types";
+import type { Activo, Movimiento } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/activos")({
   head: () => ({ meta: [{ title: "Activos TI — Indigo" }] }),
@@ -46,6 +46,12 @@ const estadoLabels: Record<string, string> = {
   Venta: "Venta",
 };
 
+const salidaEstadoLabels: Record<string, string> = {
+  EnReparacion: "En reparación",
+  DadoDeBaja: "Dado de baja",
+  Venta: "Venta",
+};
+
 const estadoTint: Record<string, string> = {
   Disponible: "bg-success/15 text-success border-success/30",
   Asignado: "bg-primary/15 text-primary border-primary/30",
@@ -55,6 +61,97 @@ const estadoTint: Record<string, string> = {
 };
 
 const ESTADOS_ACTIVO = ["Disponible", "Asignado", "EnReparacion", "DadoDeBaja", "Venta"] as const;
+
+const tipoIcon: Record<string, React.ComponentType<{ className?: string }>> = {
+  Entrada: ArrowRightFromLine,
+  Asignacion: UserCheck,
+  Devolucion: UserX,
+  Reparacion: Wrench,
+  Salida: ArrowLeftToLine,
+  Baja: Trash2,
+};
+
+const tipoBg: Record<string, string> = {
+  Entrada: "bg-success/15 text-success",
+  Asignacion: "bg-primary/15 text-primary",
+  Devolucion: "bg-accent/40 text-accent-foreground",
+  Reparacion: "bg-warning/15 text-warning",
+  Salida: "bg-muted/50 text-muted-foreground",
+  Baja: "bg-destructive/15 text-destructive",
+};
+
+const tipoBadge: Record<string, string> = {
+  Entrada: "bg-success/15 text-success border-success/30",
+  Asignacion: "bg-primary/15 text-primary border-primary/30",
+  Devolucion: "bg-accent/40 text-accent-foreground border-accent",
+  Reparacion: "bg-warning/15 text-warning border-warning/30",
+  Salida: "bg-muted/50 text-muted-foreground border-border",
+  Baja: "bg-destructive/15 text-destructive border-destructive/30",
+};
+
+const tipoLabel: Record<string, string> = {
+  Entrada: "Ingreso",
+  Asignacion: "Asignación",
+  Devolucion: "Devolución",
+  Reparacion: "Reparación",
+  Salida: "Salida",
+  Baja: "Dado de baja",
+};
+
+function renderMovimientoDesc(m: Movimiento): React.ReactNode {
+  switch (m.tipoMovimiento) {
+    case "Entrada":
+      return <span>Ingreso del activo al inventario.</span>;
+    case "Asignacion":
+      return (
+        <span>
+          {m.nombreUsuarioAsignado ? (
+            <>Asignado a <strong>{m.nombreUsuarioAsignado}</strong></>
+          ) : m.nombreUsuarioEntrega ? (
+            <>Asignado (entregado por <strong>{m.nombreUsuarioEntrega}</strong>)</>
+          ) : (
+            <>Asignado a <strong>—</strong></>
+          )}
+          {m.registroSalidaAsignacion ? ` (Salida: ${m.registroSalidaAsignacion})` : ""}
+        </span>
+      );
+    case "Devolucion":
+      return (
+        <span>
+          {m.nombreUsuarioAsignado
+            ? `Devuelto por ${m.nombreUsuarioAsignado}`
+            : "Devuelto"}
+          {m.nombreUsuarioEntrega ? ` (recibido por ${m.nombreUsuarioEntrega})` : ""}
+        </span>
+      );
+    case "Reparacion":
+      return (
+        <span>
+          Enviado a reparación{m.estadoAnterior ? ` (estado anterior: ${estadoLabels[m.estadoAnterior] ?? m.estadoAnterior})` : ""}
+          {m.observaciones ? ` — ${m.observaciones}` : ""}
+        </span>
+      );
+    case "Salida":
+      return (
+        <span>
+          {m.estadoActivoSalida
+            ? `Salida por ${salidaEstadoLabels[m.estadoActivoSalida] ?? m.estadoActivoSalida}`
+            : "Salida del inventario"}
+          {m.codigoSalida ? ` (Código: ${m.codigoSalida})` : ""}
+          {m.observaciones ? ` — ${m.observaciones}` : ""}
+        </span>
+      );
+    case "Baja":
+      return (
+        <span>
+          Activo dado de baja{m.estadoAnterior ? ` (estado anterior: ${estadoLabels[m.estadoAnterior] ?? m.estadoAnterior})` : ""}
+          {m.observaciones ? ` — ${m.observaciones}` : ""}
+        </span>
+      );
+    default:
+      return <span>{m.observaciones ?? "—"}</span>;
+  }
+}
 
 function generateCodigoActivo(ocNumero?: string, marca?: string, modelo?: string, serial?: string): string {
   const ocPart = ocNumero?.replace(/[^0-9A-Za-z]/g, "").slice(-4).toUpperCase() ?? "XXXX";
@@ -402,7 +499,7 @@ function ActivosPage() {
 
   const [estadoFilter, setEstadoFilter] = useState("all");
   const [historialActivo, setHistorialActivo] = useState<Activo | null>(null);
-  const { data: asignaciones, isLoading: loadingHistorial } = useAsignacionesPorActivo(historialActivo?.idActivo ?? null);
+  const { data: movimientos, isLoading: loadingHistorial } = useMovimientosPorActivo(historialActivo?.idActivo ?? null);
 
   const filterFn = useMemo(() => {
     if (estadoFilter === "all") return undefined;
@@ -514,54 +611,54 @@ function ActivosPage() {
       />
 
       <Dialog open={!!historialActivo} onOpenChange={(o) => !o && setHistorialActivo(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              Historial de asignaciones — {historialActivo?.serial ?? ""}
+              Historial del activo — {historialActivo?.serial ?? ""}
             </DialogTitle>
+            {historialActivo && (
+              <p className="text-sm text-muted-foreground">
+                {historialActivo.marca} {historialActivo.modelo} — {historialActivo.codigoActivo}
+              </p>
+            )}
           </DialogHeader>
           {loadingHistorial ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : asignaciones && asignaciones.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40">
-                  <TableHead>Fecha asignación</TableHead>
-                  <TableHead>Usuario</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Fecha modificación</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {asignaciones.map((a) => (
-                  <TableRow key={a.idAsignacion}>
-                    <TableCell>
-                      {new Date(a.fechaAsignacion).toLocaleDateString("es-CO", {
-                        year: "numeric", month: "short", day: "numeric",
-                      })}
-                    </TableCell>
-                    <TableCell>{a.nombreUsuarioDestino ?? "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant={a.estadoAsignacion === "Activa" ? "default" : "secondary"}>
-                        {a.estadoAsignacion}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {a.fechaModificacion
-                        ? new Date(a.fechaModificacion).toLocaleDateString("es-CO", {
+          ) : movimientos && movimientos.length > 0 ? (
+            <div className="space-y-2">
+              {movimientos.map((m) => {
+                const Icon = tipoIcon[m.tipoMovimiento] ?? ArrowDown;
+                const tint = tipoBg[m.tipoMovimiento] ?? "bg-muted/50 text-muted-foreground";
+                return (
+                  <div key={m.idHistorial} className="flex items-start gap-3 rounded-lg border p-3">
+                    <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${tint}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className={tipoBadge[m.tipoMovimiento]}>
+                          {tipoLabel[m.tipoMovimiento] ?? m.tipoMovimiento}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(m.fechaMovimiento).toLocaleDateString("es-CO", {
                             year: "numeric", month: "short", day: "numeric",
-                          })
-                        : "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                            hour: "2-digit", minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-sm">
+                        {renderMovimientoDesc(m)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-6">
-              Este activo no tiene asignaciones registradas.
+              Este activo no tiene movimientos registrados.
             </p>
           )}
           <DialogFooter>

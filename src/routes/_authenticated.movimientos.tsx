@@ -17,6 +17,17 @@ const tipoTint: Record<string, string> = {
   Entrada: "bg-success/15 text-success border-success/30",
   Asignacion: "bg-primary/15 text-primary border-primary/30",
   Devolucion: "bg-accent/40 text-accent-foreground border-accent",
+  Reparacion: "bg-warning/15 text-warning border-warning/30",
+  Baja: "bg-destructive/15 text-destructive border-destructive/30",
+};
+
+const tipoLabels: Record<string, string> = {
+  Entrada: "Ingreso",
+  Salida: "Salida",
+  Asignacion: "Asignación",
+  Devolucion: "Devolución",
+  Reparacion: "Reparación",
+  Baja: "Baja",
 };
 
 const salidaEstadoLabels: Record<string, string> = {
@@ -31,7 +42,7 @@ const salidaEstadoTint: Record<string, string> = {
   Venta: "bg-muted/50 text-muted-foreground border-border",
 };
 
-const TIPOS_MOVIMIENTO = ["Entrada", "Salida", "Asignacion", "Devolucion"] as const;
+const TIPOS_MOVIMIENTO = ["Entrada", "Salida", "Asignacion", "Devolucion", "Reparacion", "Baja"] as const;
 
 function Page() {
   const { data: movimientos, isLoading } = useMovimientos();
@@ -85,7 +96,7 @@ function Page() {
             }
             return (
               <Badge variant="outline" className={tipoTint[m.tipoMovimiento]}>
-                {m.tipoMovimiento}
+                {tipoLabels[m.tipoMovimiento] ?? m.tipoMovimiento}
               </Badge>
             );
           },
@@ -97,7 +108,29 @@ function Page() {
             return a ? `${a.serial} — ${a.marca} ${a.modelo}` : `#${m.idActivo}`;
           },
         },
-        { header: "Comentarios", render: (m) => m.observaciones ?? "—", className: "max-w-xs truncate" },
+        {
+          header: "Detalle",
+          render: (m) => {
+            if (m.tipoMovimiento === "Asignacion")
+              return m.nombreUsuarioAsignado
+                ? `Asignado a ${m.nombreUsuarioAsignado}`
+                : m.nombreUsuarioEntrega
+                  ? `Asignado (entregado por ${m.nombreUsuarioEntrega})`
+                  : "Asignado";
+            if (m.tipoMovimiento === "Devolucion")
+              return m.nombreUsuarioAsignado
+                ? `Devuelto por ${m.nombreUsuarioAsignado}`
+                : "Devuelto";
+            if (m.tipoMovimiento === "Salida" && m.codigoSalida)
+              return `Salida ${m.codigoSalida}${m.observaciones ? ` — ${m.observaciones}` : ""}`;
+            if (m.tipoMovimiento === "Reparacion")
+              return m.observaciones ?? "Enviado a reparación";
+            if (m.tipoMovimiento === "Baja")
+              return m.observaciones ?? "Dado de baja";
+            return m.observaciones ?? "—";
+          },
+          className: "max-w-xs truncate",
+        },
         { header: "Serial", render: (m) => m.serial ?? "—", showOnlyInView: true },
       ]}
       fields={[
