@@ -65,10 +65,10 @@
   --radius: 0.625rem;
 
   /* Brand */
-  --brand-purple: oklch(0.36 0.15 305);   /* #552373 */
-  --brand-magenta: oklch(0.52 0.24 349);  /* #B80E80 */
-  --brand-navy: oklch(0.36 0.11 267);     /* #263D77 */
-  --brand-teal: oklch(0.62 0.11 210);     /* #009BAA */
+  --brand-purple: oklch(0.36 0.15 305); /* #552373 */
+  --brand-magenta: oklch(0.52 0.24 349); /* #B80E80 */
+  --brand-navy: oklch(0.36 0.11 267); /* #263D77 */
+  --brand-teal: oklch(0.62 0.11 210); /* #009BAA */
 
   /* Light — corporativo, denso, claro con acentos púrpura/magenta */
   --background: oklch(0.985 0.005 280);
@@ -152,11 +152,11 @@
   --shadow-elegant: 0 10px 30px -12px color-mix(in oklab, var(--brand-magenta) 40%, transparent);
   --shadow-glow: 0 0 50px -8px color-mix(in oklab, var(--brand-magenta) 55%, transparent);
 
-  --sidebar: oklch(0.18 0.10 310);
-  --sidebar-foreground: oklch(0.90 0.02 300);
+  --sidebar: oklch(0.18 0.1 310);
+  --sidebar-foreground: oklch(0.9 0.02 300);
   --sidebar-primary: var(--brand-magenta);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.30 0.15 320);
+  --sidebar-accent: oklch(0.3 0.15 320);
   --sidebar-accent-foreground: oklch(0.99 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: var(--brand-magenta);
@@ -166,7 +166,8 @@
   * {
     border-color: var(--color-border);
   }
-  html, body {
+  html,
+  body {
     font-family: var(--font-sans);
   }
   body {
@@ -174,7 +175,11 @@
     color: var(--color-foreground);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
-  h1, h2, h3, h4, .font-display {
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
     font-family: var(--font-display);
     letter-spacing: -0.01em;
   }

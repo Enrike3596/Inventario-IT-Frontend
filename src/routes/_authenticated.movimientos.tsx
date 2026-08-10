@@ -1,11 +1,17 @@
 import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { X } from "lucide-react";
 import { ResourcePage } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { useMovimientos, useActivos } from "@/lib/queries";
+import { useMovimientos, useActivos, useAsignaciones } from "@/lib/queries";
 import type { Movimiento } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/movimientos")({
@@ -42,13 +48,37 @@ const salidaEstadoTint: Record<string, string> = {
   Venta: "bg-muted/50 text-muted-foreground border-border",
 };
 
-const TIPOS_MOVIMIENTO = ["Entrada", "Salida", "Asignacion", "Devolucion", "Reparacion", "Baja"] as const;
+const TIPOS_MOVIMIENTO = [
+  "Entrada",
+  "Salida",
+  "Asignacion",
+  "Devolucion",
+  "Reparacion",
+  "Baja",
+] as const;
 
 function Page() {
   const { data: movimientos, isLoading } = useMovimientos();
   const { data: activos } = useActivos();
+  const { data: asignaciones } = useAsignaciones();
+
+  const parqueaderoPorAsignacion = useMemo(
+    () =>
+      new Map(
+        (asignaciones ?? [])
+          .filter((a) => a.idParqueadero && a.nombreParqueadero)
+          .map((a) => [a.idAsignacion, a.nombreParqueadero]),
+      ),
+    [asignaciones],
+  );
 
   const [tipoFilter, setTipoFilter] = useState("all");
+
+  const hasActiveFilters = tipoFilter !== "all";
+
+  const clearFilters = () => {
+    setTipoFilter("all");
+  };
 
   const filterFn = useMemo(() => {
     if (tipoFilter === "all") return undefined;
@@ -66,7 +96,7 @@ function Page() {
       searchKeys={["tipoMovimiento"]}
       filterFn={filterFn}
       filters={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground">Tipo:</span>
           <Select value={tipoFilter} onValueChange={setTipoFilter}>
             <SelectTrigger className="h-9 w-40">
@@ -75,10 +105,22 @@ function Page() {
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
               {TIPOS_MOVIMIENTO.map((t) => (
-                <SelectItem key={t} value={t}>{t}</SelectItem>
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 px-2 text-muted-foreground"
+              onClick={clearFilters}
+            >
+              <X className="h-4 w-4 mr-1" /> Limpiar
+            </Button>
+          )}
         </div>
       }
       defaultValues={{}}
@@ -111,22 +153,32 @@ function Page() {
         {
           header: "Detalle",
           render: (m) => {
-            if (m.tipoMovimiento === "Asignacion")
+            if (m.tipoMovimiento === "Asignacion") {
+              const parqueadero = m.idAsignacion
+                ? parqueaderoPorAsignacion.get(m.idAsignacion)
+                : undefined;
+              if (parqueadero) return `Asignado al parqueadero ${parqueadero}`;
               return m.nombreUsuarioAsignado
                 ? `Asignado a ${m.nombreUsuarioAsignado}`
                 : m.nombreUsuarioEntrega
                   ? `Asignado (entregado por ${m.nombreUsuarioEntrega})`
                   : "Asignado";
-            if (m.tipoMovimiento === "Devolucion")
+            }
+            if (m.tipoMovimiento === "Devolucion") {
+              const resto =
+                m.estadoNuevo === "Disponible"
+                  ? " — el activo queda en Disponible"
+                  : m.estadoNuevo
+                    ? ` — queda en ${m.estadoNuevo}`
+                    : "";
               return m.nombreUsuarioAsignado
-                ? `Devuelto por ${m.nombreUsuarioAsignado}`
-                : "Devuelto";
+                ? `Devuelto por ${m.nombreUsuarioAsignado}${resto}`
+                : `Devuelto${resto}`;
+            }
             if (m.tipoMovimiento === "Salida" && m.codigoSalida)
               return `Salida ${m.codigoSalida}${m.observaciones ? ` — ${m.observaciones}` : ""}`;
-            if (m.tipoMovimiento === "Reparacion")
-              return m.observaciones ?? "Enviado a reparación";
-            if (m.tipoMovimiento === "Baja")
-              return m.observaciones ?? "Dado de baja";
+            if (m.tipoMovimiento === "Reparacion") return m.observaciones ?? "Enviado a reparación";
+            if (m.tipoMovimiento === "Baja") return m.observaciones ?? "Dado de baja";
             return m.observaciones ?? "—";
           },
           className: "max-w-xs truncate",

@@ -14,6 +14,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FirmarTokenRouteImport } from './routes/firmar.$token'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated.usuarios'
 import { Route as AuthenticatedSedesRouteImport } from './routes/_authenticated.sedes'
 import { Route as AuthenticatedSalidasRouteImport } from './routes/_authenticated.salidas'
@@ -21,10 +22,12 @@ import { Route as AuthenticatedRolesRouteImport } from './routes/_authenticated.
 import { Route as AuthenticatedParqueaderosRouteImport } from './routes/_authenticated.parqueaderos'
 import { Route as AuthenticatedOrdenesCompraRouteImport } from './routes/_authenticated.ordenes-compra'
 import { Route as AuthenticatedMovimientosRouteImport } from './routes/_authenticated.movimientos'
+import { Route as AuthenticatedInformesRouteImport } from './routes/_authenticated.informes'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedCategoriasRouteImport } from './routes/_authenticated.categorias'
 import { Route as AuthenticatedCanalesRouteImport } from './routes/_authenticated.canales'
 import { Route as AuthenticatedAsignacionesRouteImport } from './routes/_authenticated.asignaciones'
+import { Route as AuthenticatedAreasRouteImport } from './routes/_authenticated.areas'
 import { Route as AuthenticatedActivosRouteImport } from './routes/_authenticated.activos'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -49,6 +52,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FirmarTokenRoute = FirmarTokenRouteImport.update({
+  id: '/firmar/$token',
+  path: '/firmar/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
@@ -89,6 +97,11 @@ const AuthenticatedMovimientosRoute =
     path: '/movimientos',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedInformesRoute = AuthenticatedInformesRouteImport.update({
+  id: '/informes',
+  path: '/informes',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -110,6 +123,11 @@ const AuthenticatedAsignacionesRoute =
     path: '/asignaciones',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAreasRoute = AuthenticatedAreasRouteImport.update({
+  id: '/areas',
+  path: '/areas',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedActivosRoute = AuthenticatedActivosRouteImport.update({
   id: '/activos',
   path: '/activos',
@@ -122,10 +140,12 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/activos': typeof AuthenticatedActivosRoute
+  '/areas': typeof AuthenticatedAreasRoute
   '/asignaciones': typeof AuthenticatedAsignacionesRoute
   '/canales': typeof AuthenticatedCanalesRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/informes': typeof AuthenticatedInformesRoute
   '/movimientos': typeof AuthenticatedMovimientosRoute
   '/ordenes-compra': typeof AuthenticatedOrdenesCompraRoute
   '/parqueaderos': typeof AuthenticatedParqueaderosRoute
@@ -133,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/salidas': typeof AuthenticatedSalidasRoute
   '/sedes': typeof AuthenticatedSedesRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/firmar/$token': typeof FirmarTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -140,10 +161,12 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/activos': typeof AuthenticatedActivosRoute
+  '/areas': typeof AuthenticatedAreasRoute
   '/asignaciones': typeof AuthenticatedAsignacionesRoute
   '/canales': typeof AuthenticatedCanalesRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/informes': typeof AuthenticatedInformesRoute
   '/movimientos': typeof AuthenticatedMovimientosRoute
   '/ordenes-compra': typeof AuthenticatedOrdenesCompraRoute
   '/parqueaderos': typeof AuthenticatedParqueaderosRoute
@@ -151,6 +174,7 @@ export interface FileRoutesByTo {
   '/salidas': typeof AuthenticatedSalidasRoute
   '/sedes': typeof AuthenticatedSedesRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/firmar/$token': typeof FirmarTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -160,10 +184,12 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/activos': typeof AuthenticatedActivosRoute
+  '/_authenticated/areas': typeof AuthenticatedAreasRoute
   '/_authenticated/asignaciones': typeof AuthenticatedAsignacionesRoute
   '/_authenticated/canales': typeof AuthenticatedCanalesRoute
   '/_authenticated/categorias': typeof AuthenticatedCategoriasRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/informes': typeof AuthenticatedInformesRoute
   '/_authenticated/movimientos': typeof AuthenticatedMovimientosRoute
   '/_authenticated/ordenes-compra': typeof AuthenticatedOrdenesCompraRoute
   '/_authenticated/parqueaderos': typeof AuthenticatedParqueaderosRoute
@@ -171,6 +197,7 @@ export interface FileRoutesById {
   '/_authenticated/salidas': typeof AuthenticatedSalidasRoute
   '/_authenticated/sedes': typeof AuthenticatedSedesRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
+  '/firmar/$token': typeof FirmarTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -180,10 +207,12 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/activos'
+    | '/areas'
     | '/asignaciones'
     | '/canales'
     | '/categorias'
     | '/dashboard'
+    | '/informes'
     | '/movimientos'
     | '/ordenes-compra'
     | '/parqueaderos'
@@ -191,6 +220,7 @@ export interface FileRouteTypes {
     | '/salidas'
     | '/sedes'
     | '/usuarios'
+    | '/firmar/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -198,10 +228,12 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/activos'
+    | '/areas'
     | '/asignaciones'
     | '/canales'
     | '/categorias'
     | '/dashboard'
+    | '/informes'
     | '/movimientos'
     | '/ordenes-compra'
     | '/parqueaderos'
@@ -209,6 +241,7 @@ export interface FileRouteTypes {
     | '/salidas'
     | '/sedes'
     | '/usuarios'
+    | '/firmar/$token'
   id:
     | '__root__'
     | '/'
@@ -217,10 +250,12 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/_authenticated/activos'
+    | '/_authenticated/areas'
     | '/_authenticated/asignaciones'
     | '/_authenticated/canales'
     | '/_authenticated/categorias'
     | '/_authenticated/dashboard'
+    | '/_authenticated/informes'
     | '/_authenticated/movimientos'
     | '/_authenticated/ordenes-compra'
     | '/_authenticated/parqueaderos'
@@ -228,6 +263,7 @@ export interface FileRouteTypes {
     | '/_authenticated/salidas'
     | '/_authenticated/sedes'
     | '/_authenticated/usuarios'
+    | '/firmar/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -236,6 +272,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  FirmarTokenRoute: typeof FirmarTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -273,6 +310,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/firmar/$token': {
+      id: '/firmar/$token'
+      path: '/firmar/$token'
+      fullPath: '/firmar/$token'
+      preLoaderRoute: typeof FirmarTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/usuarios': {
@@ -324,6 +368,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMovimientosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/informes': {
+      id: '/_authenticated/informes'
+      path: '/informes'
+      fullPath: '/informes'
+      preLoaderRoute: typeof AuthenticatedInformesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -352,6 +403,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAsignacionesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/areas': {
+      id: '/_authenticated/areas'
+      path: '/areas'
+      fullPath: '/areas'
+      preLoaderRoute: typeof AuthenticatedAreasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/activos': {
       id: '/_authenticated/activos'
       path: '/activos'
@@ -364,10 +422,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedActivosRoute: typeof AuthenticatedActivosRoute
+  AuthenticatedAreasRoute: typeof AuthenticatedAreasRoute
   AuthenticatedAsignacionesRoute: typeof AuthenticatedAsignacionesRoute
   AuthenticatedCanalesRoute: typeof AuthenticatedCanalesRoute
   AuthenticatedCategoriasRoute: typeof AuthenticatedCategoriasRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedInformesRoute: typeof AuthenticatedInformesRoute
   AuthenticatedMovimientosRoute: typeof AuthenticatedMovimientosRoute
   AuthenticatedOrdenesCompraRoute: typeof AuthenticatedOrdenesCompraRoute
   AuthenticatedParqueaderosRoute: typeof AuthenticatedParqueaderosRoute
@@ -379,10 +439,12 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedActivosRoute: AuthenticatedActivosRoute,
+  AuthenticatedAreasRoute: AuthenticatedAreasRoute,
   AuthenticatedAsignacionesRoute: AuthenticatedAsignacionesRoute,
   AuthenticatedCanalesRoute: AuthenticatedCanalesRoute,
   AuthenticatedCategoriasRoute: AuthenticatedCategoriasRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedInformesRoute: AuthenticatedInformesRoute,
   AuthenticatedMovimientosRoute: AuthenticatedMovimientosRoute,
   AuthenticatedOrdenesCompraRoute: AuthenticatedOrdenesCompraRoute,
   AuthenticatedParqueaderosRoute: AuthenticatedParqueaderosRoute,
@@ -402,6 +464,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  FirmarTokenRoute: FirmarTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

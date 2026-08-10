@@ -1,9 +1,15 @@
 import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { X } from "lucide-react";
 import { ResourcePage } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
   useCategorias,
@@ -26,6 +32,12 @@ function Page() {
 
   const [estadoFilter, setEstadoFilter] = useState("all");
 
+  const hasActiveFilters = estadoFilter !== "all";
+
+  const clearFilters = () => {
+    setEstadoFilter("all");
+  };
+
   const filterFn = useMemo(() => {
     if (estadoFilter === "all") return undefined;
     return (item: CategoriaActivo) => item.estado === estadoFilter;
@@ -42,7 +54,7 @@ function Page() {
       searchKeys={["nombre"]}
       filterFn={filterFn}
       filters={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground">Estado:</span>
           <Select value={estadoFilter} onValueChange={setEstadoFilter}>
             <SelectTrigger className="h-9 w-36">
@@ -54,6 +66,16 @@ function Page() {
               <SelectItem value="Inactivo">Inactivo</SelectItem>
             </SelectContent>
           </Select>
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 px-2 text-muted-foreground"
+              onClick={clearFilters}
+            >
+              <X className="h-4 w-4 mr-1" /> Limpiar
+            </Button>
+          )}
         </div>
       }
       defaultValues={{}}

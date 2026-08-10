@@ -4,9 +4,11 @@ import {
   Building2,
   ClipboardList,
   Cpu,
+  FileBarChart,
   FolderTree,
   LayoutDashboard,
   LogOut,
+  MapPin,
   ParkingSquare,
   Radio,
   ShieldCheck,
@@ -29,12 +31,22 @@ import {
 import { useAuth } from "@/lib/auth";
 import type { RoleKey } from "@/lib/types";
 
-type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }>; roles?: RoleKey[] };
+type Item = {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  roles?: RoleKey[];
+};
 
 const inventario: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Activos TI", url: "/activos", icon: Cpu },
-  { title: "Categorías", url: "/categorias", icon: FolderTree, roles: ["super_admin", "coordinador"] },
+  {
+    title: "Categorías",
+    url: "/categorias",
+    icon: FolderTree,
+    roles: ["super_admin", "coordinador"],
+  },
   { title: "Órdenes de Compra", url: "/ordenes-compra", icon: ClipboardList },
 ];
 
@@ -43,10 +55,12 @@ const operacion: Item[] = [
   { title: "Salidas", url: "/salidas", icon: Truck },
   { title: "Movimientos", url: "/movimientos", icon: Activity },
   { title: "Canales", url: "/canales", icon: Radio, roles: ["super_admin", "coordinador"] },
+  { title: "Informes", url: "/informes", icon: FileBarChart },
 ];
 
 const organizacion: Item[] = [
   { title: "Sedes", url: "/sedes", icon: Building2 },
+  { title: "Areas", url: "/areas", icon: MapPin, roles: ["super_admin", "coordinador"] },
   { title: "Parqueaderos", url: "/parqueaderos", icon: ParkingSquare },
   { title: "Usuarios", url: "/usuarios", icon: Users },
   { title: "Roles", url: "/roles", icon: ShieldCheck },
@@ -96,14 +110,16 @@ export function AppSidebar() {
             <SidebarMenu>{renderItems(operacion)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {user?.role !== "agente_soporte" && (
-          <SidebarGroup>
-            {!collapsed && <SidebarGroupLabel>Organización</SidebarGroupLabel>}
-            <SidebarGroupContent>
-              <SidebarMenu>{renderItems(organizacion)}</SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        {user?.role !== "agente_soporte" &&
+          user?.role !== "auditor" &&
+          user?.role !== "usuario" && (
+            <SidebarGroup>
+              {!collapsed && <SidebarGroupLabel>Organización</SidebarGroupLabel>}
+              <SidebarGroupContent>
+                <SidebarMenu>{renderItems(organizacion)}</SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">

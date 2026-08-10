@@ -1,16 +1,21 @@
 import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { X } from "lucide-react";
 import { ResourcePage } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
   useParqueaderos,
   useCreateParqueadero,
   useUpdateParqueadero,
   useDeleteParqueadero,
-  useSedes,
 } from "@/lib/queries";
 import type { Parqueadero } from "@/lib/types";
 
@@ -21,12 +26,17 @@ export const Route = createFileRoute("/_authenticated/parqueaderos")({
 
 function Page() {
   const { data: parqueaderos, isLoading } = useParqueaderos();
-  const { data: sedes } = useSedes();
   const createMutation = useCreateParqueadero();
   const updateMutation = useUpdateParqueadero();
   const deleteMutation = useDeleteParqueadero();
 
   const [estadoFilter, setEstadoFilter] = useState("all");
+
+  const hasActiveFilters = estadoFilter !== "all";
+
+  const clearFilters = () => {
+    setEstadoFilter("all");
+  };
 
   const filterFn = useMemo(() => {
     if (estadoFilter === "all") return undefined;
@@ -36,15 +46,15 @@ function Page() {
   return (
     <ResourcePage<Parqueadero>
       title="Parqueaderos"
-      subtitle="Bodegas y zonas de almacenamiento por sede"
+      subtitle="Bodegas y zonas de almacenamiento"
       data={parqueaderos ?? []}
       isLoading={isLoading}
       idKey="idParqueadero"
       singular="parqueadero"
-      searchKeys={["nombre", "ubicacion"]}
+      searchKeys={["nombre", "ubicacion", "da"]}
       filterFn={filterFn}
       filters={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground">Estado:</span>
           <Select value={estadoFilter} onValueChange={setEstadoFilter}>
             <SelectTrigger className="h-9 w-36">
@@ -56,15 +66,22 @@ function Page() {
               <SelectItem value="Inactivo">Inactivo</SelectItem>
             </SelectContent>
           </Select>
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 px-2 text-muted-foreground"
+              onClick={clearFilters}
+            >
+              <X className="h-4 w-4 mr-1" /> Limpiar
+            </Button>
+          )}
         </div>
       }
-      defaultValues={{}}
+      defaultValues={{ estado: "Activo" }}
       columns={[
+        { header: "DA", key: "da" },
         { header: "Nombre", key: "nombre" },
-        {
-          header: "Sede",
-          render: (r) => r.nombreSede ?? "—",
-        },
         { header: "Ubicación", key: "ubicacion" },
         {
           header: "Estado",
@@ -74,14 +91,8 @@ function Page() {
         },
       ]}
       fields={[
+        { key: "da", label: "DA", type: "text", required: true, maxLength: 50 },
         { key: "nombre", label: "Nombre", type: "text", required: true },
-        {
-          key: "idSede",
-          label: "Sede",
-          type: "select",
-          required: true,
-          options: (sedes ?? []).map((s) => ({ value: s.idSede, label: s.nombre })),
-        },
         { key: "ubicacion", label: "Ubicación", type: "text", required: true },
         {
           key: "estado",

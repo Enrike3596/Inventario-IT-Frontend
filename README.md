@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+
 # Indigo — Sistema de Inventario TI
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript)](https://www.typescriptlang.org/)
@@ -51,23 +53,23 @@ El frontend está construido con **TanStack Start** (React 19 + SSR), **Tailwind
 
 ## Stack Tecnológico
 
-| Categoría | Tecnología | Versión |
-|-----------|-----------|---------|
-| **Framework** | React + TanStack Start | 19 / 1.168 |
-| **Lenguaje** | TypeScript | 5.8 |
-| **Ruteo** | TanStack Router (file-based) | 1.170 |
-| **Estado servidor** | TanStack React Query | 5.101 |
-| **Estilos** | Tailwind CSS v4 | 4.2 |
-| **Componentes** | shadcn/ui + Radix UI | — |
-| **Formularios** | React Hook Form + Zod | 7.71 / 3.24 |
-| **Gráficas** | Recharts | 2.15 |
-| **Fechas** | date-fns | 4.1 |
-| **Iconos** | Lucide React | 0.575 |
-| **Notificaciones** | Sonner | 2.0 |
-| **Fuentes** | Inter + Sora (via Fontsource) | — |
-| **Build** | Vite 8 | 8.0 |
-| **SSR** | Nitro (TanStack Start) | 3.0 |
-| **Backend** | ASP.NET Core 10 | 10.0 |
+| Categoría           | Tecnología                    | Versión     |
+| ------------------- | ----------------------------- | ----------- |
+| **Framework**       | React + TanStack Start        | 19 / 1.168  |
+| **Lenguaje**        | TypeScript                    | 5.8         |
+| **Ruteo**           | TanStack Router (file-based)  | 1.170       |
+| **Estado servidor** | TanStack React Query          | 5.101       |
+| **Estilos**         | Tailwind CSS v4               | 4.2         |
+| **Componentes**     | shadcn/ui + Radix UI          | —           |
+| **Formularios**     | React Hook Form + Zod         | 7.71 / 3.24 |
+| **Gráficas**        | Recharts                      | 2.15        |
+| **Fechas**          | date-fns                      | 4.1         |
+| **Iconos**          | Lucide React                  | 0.575       |
+| **Notificaciones**  | Sonner                        | 2.0         |
+| **Fuentes**         | Inter + Sora (via Fontsource) | —           |
+| **Build**           | Vite 8                        | 8.0         |
+| **SSR**             | Nitro (TanStack Start)        | 3.0         |
+| **Backend**         | ASP.NET Core 10               | 10.0        |
 
 ---
 
@@ -115,20 +117,20 @@ El frontend se comunica exclusivamente mediante HTTP REST con el backend, usando
 
 ## Módulos del Sistema
 
-| Módulo | Ruta | Descripción | CRUD |
-|--------|------|-------------|------|
-| **Dashboard** | `/dashboard` | Panel con métricas, distribución de activos y movimientos recientes | — |
-| **Usuarios** | `/usuarios` | Gestión de usuarios del sistema | ✅ |
-| **Roles** | `/roles` | Catálogo de roles y permisos | ✅ |
-| **Sedes** | `/sedes` | Gestión de sedes/ubicaciones | ✅ |
-| **Parqueaderos** | `/parqueaderos` | Gestión de áreas de almacenamiento | ✅ |
-| **Categorías** | `/categorias` | Catálogo de categorías de activos | ✅ |
-| **Órdenes de Compra** | `/ordenes-compra` | Registro de órdenes de compra | ✅ |
-| **Activos** | `/activos` | Inventario de activos informáticos | ✅ |
-| **Canales** | `/canales` | Canales de solicitud (tickets, teléfono, etc.) | ✅ |
-| **Salidas** | `/salidas` | Salidas de inventario | ✅ |
-| **Asignaciones** | `/asignaciones` | Asignación de activos a usuarios | ✅ |
-| **Movimientos** | `/movimientos` | Historial de movimientos de activos (solo lectura) | — |
+| Módulo                | Ruta              | Descripción                                                         | CRUD |
+| --------------------- | ----------------- | ------------------------------------------------------------------- | ---- |
+| **Dashboard**         | `/dashboard`      | Panel con métricas, distribución de activos y movimientos recientes | —    |
+| **Usuarios**          | `/usuarios`       | Gestión de usuarios del sistema                                     | ✅   |
+| **Roles**             | `/roles`          | Catálogo de roles y permisos                                        | ✅   |
+| **Sedes**             | `/sedes`          | Gestión de sedes/ubicaciones                                        | ✅   |
+| **Parqueaderos**      | `/parqueaderos`   | Gestión de áreas de almacenamiento                                  | ✅   |
+| **Categorías**        | `/categorias`     | Catálogo de categorías de activos                                   | ✅   |
+| **Órdenes de Compra** | `/ordenes-compra` | Registro de órdenes de compra                                       | ✅   |
+| **Activos**           | `/activos`        | Inventario de activos informáticos                                  | ✅   |
+| **Canales**           | `/canales`        | Canales de solicitud (tickets, teléfono, etc.)                      | ✅   |
+| **Salidas**           | `/salidas`        | Salidas de inventario                                               | ✅   |
+| **Asignaciones**      | `/asignaciones`   | Asignación de activos a usuarios                                    | ✅   |
+| **Movimientos**       | `/movimientos`    | Historial de movimientos de activos (solo lectura)                  | —    |
 
 Cada módulo CRUD se renderiza mediante el componente genérico `ResourcePage<T>`, que recibe la configuración de columnas, campos de formulario y callbacks de mutación.
 
@@ -136,7 +138,7 @@ Cada módulo CRUD se renderiza mediante el componente genérico `ResourcePage<T>
 
 ## Capturas de Pantalla
 
-> *(Agregar capturas de pantalla aquí — recomendado: dashboard, tabla de activos, formulario de edición)*
+> _(Agregar capturas de pantalla aquí — recomendado: dashboard, tabla de activos, formulario de edición)_
 
 ---
 
@@ -187,22 +189,22 @@ La aplicación se abrirá en `http://localhost:8080`.
 
 ## Scripts Disponibles
 
-| Comando | Descripción |
-|---------|-------------|
-| `pnpm dev` | Inicia el servidor de desarrollo Vite con SSR |
-| `pnpm build` | Compila para producción |
-| `pnpm build:dev` | Compila en modo desarrollo |
-| `pnpm preview` | Previsualiza la compilación de producción |
-| `pnpm lint` | Ejecuta ESLint sobre el código |
-| `pnpm format` | Formatea el código con Prettier |
+| Comando          | Descripción                                   |
+| ---------------- | --------------------------------------------- |
+| `pnpm dev`       | Inicia el servidor de desarrollo Vite con SSR |
+| `pnpm build`     | Compila para producción                       |
+| `pnpm build:dev` | Compila en modo desarrollo                    |
+| `pnpm preview`   | Previsualiza la compilación de producción     |
+| `pnpm lint`      | Ejecuta ESLint sobre el código                |
+| `pnpm format`    | Formatea el código con Prettier               |
 
 ---
 
 ## Variables de Entorno
 
-| Variable | Requerida | Descripción | Ejemplo |
-|----------|-----------|-------------|---------|
-| `VITE_API_URL` | ✅ | URL base de la API REST backend | `http://localhost:5176` |
+| Variable       | Requerida | Descripción                     | Ejemplo                 |
+| -------------- | --------- | ------------------------------- | ----------------------- |
+| `VITE_API_URL` | ✅        | URL base de la API REST backend | `http://localhost:5176` |
 
 ---
 
@@ -253,17 +255,19 @@ src/
 
 ### Roles y Permisos
 
-| Rol | Clave | Permisos |
-|-----|-------|----------|
-| **Super Administrador** | `super_admin` | Vista, creación, edición y eliminación |
-| **Coordinador** | `coordinador` | Vista, creación y edición |
-| **Agente Soporte TI** | `agente_soporte` | Vista, creación y edición |
+| Rol                     | Clave            | Permisos                               |
+| ----------------------- | ---------------- | -------------------------------------- |
+| **Super Administrador** | `super_admin`    | Vista, creación, edición y eliminación |
+| **Coordinador**         | `coordinador`    | Vista, creación y edición              |
+| **Agente Soporte TI**   | `agente_soporte` | Vista, creación y edición              |
 
 El control de permisos se realiza mediante la función `can(action)` expuesta por el `AuthContext`:
 
 ```typescript
 const { can } = useAuth();
-if (can("create")) { /* mostrar botón */ }
+if (can("create")) {
+  /* mostrar botón */
+}
 ```
 
 ### Recuperación de Contraseña
@@ -279,40 +283,40 @@ El frontend consume una API REST en ASP.NET Core 10 disponible en `VITE_API_URL`
 
 ### Endpoints
 
-| Método | Ruta | Autenticado |
-|--------|------|:-----------:|
-| `POST` | `/api/Auth/login` | ❌ |
-| `POST` | `/api/Auth/forgot-password` | ❌ |
-| `POST` | `/api/Auth/reset-password` | ❌ |
-| `GET` | `/api/Auth/me` | ✅ |
-| `GET/POST` | `/api/Roles` | ✅ |
-| `GET/PUT/DELETE` | `/api/Roles/{id}` | ✅ |
-| `GET/POST` | `/api/Sedes` | ✅ |
-| `GET/PUT/DELETE` | `/api/Sedes/{id}` | ✅ |
-| `GET/POST` | `/api/Usuarios` | ✅ |
-| `GET/PUT/DELETE` | `/api/Usuarios/{id}` | ✅ |
-| `GET/POST` | `/api/CategoriasActivo` | ✅ |
-| `GET/PUT/DELETE` | `/api/CategoriasActivo/{id}` | ✅ |
-| `GET/POST` | `/api/Parqueaderos` | ✅ |
-| `GET/PUT/DELETE` | `/api/Parqueaderos/{id}` | ✅ |
-| `GET/POST` | `/api/OrdenesCompra` | ✅ |
-| `GET/PUT/DELETE` | `/api/OrdenesCompra/{id}` | ✅ |
-| `GET/POST` | `/api/Activos` | ✅ |
-| `GET/PUT/DELETE` | `/api/Activos/{id}` | ✅ |
-| `GET/POST` | `/api/Canales` | ✅ |
-| `GET/PUT/DELETE` | `/api/Canales/{id}` | ✅ |
-| `GET/POST` | `/api/Salidas` | ✅ |
-| `GET/PUT/DELETE` | `/api/Salidas/{id}` | ✅ |
-| `GET/POST` | `/api/AsignacionesUsuario` | ✅ |
-| `GET/PUT/DELETE` | `/api/AsignacionesUsuario/{id}` | ✅ |
-| `GET` | `/api/HistorialActivo` | ✅ |
+| Método           | Ruta                            | Autenticado |
+| ---------------- | ------------------------------- | :---------: |
+| `POST`           | `/api/Auth/login`               |     ❌      |
+| `POST`           | `/api/Auth/forgot-password`     |     ❌      |
+| `POST`           | `/api/Auth/reset-password`      |     ❌      |
+| `GET`            | `/api/Auth/me`                  |     ✅      |
+| `GET/POST`       | `/api/Roles`                    |     ✅      |
+| `GET/PUT/DELETE` | `/api/Roles/{id}`               |     ✅      |
+| `GET/POST`       | `/api/Sedes`                    |     ✅      |
+| `GET/PUT/DELETE` | `/api/Sedes/{id}`               |     ✅      |
+| `GET/POST`       | `/api/Usuarios`                 |     ✅      |
+| `GET/PUT/DELETE` | `/api/Usuarios/{id}`            |     ✅      |
+| `GET/POST`       | `/api/CategoriasActivo`         |     ✅      |
+| `GET/PUT/DELETE` | `/api/CategoriasActivo/{id}`    |     ✅      |
+| `GET/POST`       | `/api/Parqueaderos`             |     ✅      |
+| `GET/PUT/DELETE` | `/api/Parqueaderos/{id}`        |     ✅      |
+| `GET/POST`       | `/api/OrdenesCompra`            |     ✅      |
+| `GET/PUT/DELETE` | `/api/OrdenesCompra/{id}`       |     ✅      |
+| `GET/POST`       | `/api/Activos`                  |     ✅      |
+| `GET/PUT/DELETE` | `/api/Activos/{id}`             |     ✅      |
+| `GET/POST`       | `/api/Canales`                  |     ✅      |
+| `GET/PUT/DELETE` | `/api/Canales/{id}`             |     ✅      |
+| `GET/POST`       | `/api/Salidas`                  |     ✅      |
+| `GET/PUT/DELETE` | `/api/Salidas/{id}`             |     ✅      |
+| `GET/POST`       | `/api/AsignacionesUsuario`      |     ✅      |
+| `GET/PUT/DELETE` | `/api/AsignacionesUsuario/{id}` |     ✅      |
+| `GET`            | `/api/HistorialActivo`          |     ✅      |
 
 Todas las respuestas utilizan el formato:
 
 ```json
 {
   "exito": true,
-  "data": { /* recurso o array */ },
+  "data": {/* recurso o array */},
   "mensaje": "Operación exitosa."
 }
 ```
@@ -393,3 +397,33 @@ Uso interno — todos los derechos reservados.
 - [shadcn/ui](https://ui.shadcn.com/) — Componentes base.
 - [TanStack](https://tanstack.com/) — Router, Query, Start.
 - [Lovable](https://lovable.dev/) — Configuración inicial del proyecto.
+  \=======
+
+# Introduction
+
+TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project.
+
+# Getting Started
+
+TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
+
+1. Installation process
+2. Software dependencies
+3. Latest releases
+4. API references
+
+# Build and Test
+
+TODO: Describe and show how to build your code and run the tests.
+
+# Contribute
+
+TODO: Explain how other users and developers can contribute to make your code better.
+
+If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
+
+- [ASP.NET Core](https://github.com/aspnet/Home)
+- [Visual Studio Code](https://github.com/Microsoft/vscode)
+- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+
+> > > > > > > 025c8ab3992e748bef2c875d3a2e186f8de1fbb8

@@ -1,7 +1,20 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { History, Loader2, ArrowRightFromLine, ArrowLeftToLine, Wrench, Trash2, Tags, ArrowDown, UserCheck, UserX } from "lucide-react";
+import {
+  History,
+  Loader2,
+  ArrowRightFromLine,
+  ArrowLeftToLine,
+  Wrench,
+  Trash2,
+  Tags,
+  ArrowDown,
+  UserCheck,
+  UserX,
+  X,
+  RotateCcw,
+} from "lucide-react";
 import { toast } from "sonner";
 import { ResourcePage, type CustomFormProps } from "@/components/resource-page";
 import { Badge } from "@/components/ui/badge";
@@ -10,21 +23,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import {
   keys,
   useActivos,
+  useAsignaciones,
   useCreateActivo,
   useUpdateActivo,
   useDeleteActivo,
+  useRegistrarRegresoReparacion,
   useMovimientosPorActivo,
+  useAsignacionesPorActivo,
   useCategorias,
   useOrdenesCompra,
   useOrdenCompraDetail,
@@ -105,29 +135,36 @@ function renderMovimientoDesc(m: Movimiento): React.ReactNode {
     case "Asignacion":
       return (
         <span>
-          {m.nombreUsuarioAsignado ? (
-            <>Asignado a <strong>{m.nombreUsuarioAsignado}</strong></>
-          ) : m.nombreUsuarioEntrega ? (
-            <>Asignado (entregado por <strong>{m.nombreUsuarioEntrega}</strong>)</>
+          Asignado a <strong>{m.nombreUsuarioAsignado ?? "—"}</strong>
+          {m.nombreUsuarioEntrega ? (
+            <>
+              {" "}
+              por <strong>{m.nombreUsuarioEntrega}</strong>
+            </>
           ) : (
-            <>Asignado a <strong>—</strong></>
+            ""
           )}
-          {m.registroSalidaAsignacion ? ` (Salida: ${m.registroSalidaAsignacion})` : ""}
         </span>
       );
     case "Devolucion":
       return (
         <span>
-          {m.nombreUsuarioAsignado
-            ? `Devuelto por ${m.nombreUsuarioAsignado}`
-            : "Devuelto"}
+          {m.nombreUsuarioAsignado ? `Devuelto por ${m.nombreUsuarioAsignado}` : "Devuelto"}
           {m.nombreUsuarioEntrega ? ` (recibido por ${m.nombreUsuarioEntrega})` : ""}
+          {m.estadoNuevo === "Disponible"
+            ? " — el activo queda en Disponible"
+            : m.estadoNuevo
+              ? ` — queda en ${estadoLabels[m.estadoNuevo] ?? m.estadoNuevo}`
+              : ""}
         </span>
       );
     case "Reparacion":
       return (
         <span>
-          Enviado a reparación{m.estadoAnterior ? ` (estado anterior: ${estadoLabels[m.estadoAnterior] ?? m.estadoAnterior})` : ""}
+          Enviado a reparación
+          {m.estadoAnterior
+            ? ` (estado anterior: ${estadoLabels[m.estadoAnterior] ?? m.estadoAnterior})`
+            : ""}
           {m.observaciones ? ` — ${m.observaciones}` : ""}
         </span>
       );
@@ -144,7 +181,10 @@ function renderMovimientoDesc(m: Movimiento): React.ReactNode {
     case "Baja":
       return (
         <span>
-          Activo dado de baja{m.estadoAnterior ? ` (estado anterior: ${estadoLabels[m.estadoAnterior] ?? m.estadoAnterior})` : ""}
+          Activo dado de baja
+          {m.estadoAnterior
+            ? ` (estado anterior: ${estadoLabels[m.estadoAnterior] ?? m.estadoAnterior})`
+            : ""}
           {m.observaciones ? ` — ${m.observaciones}` : ""}
         </span>
       );
@@ -153,18 +193,35 @@ function renderMovimientoDesc(m: Movimiento): React.ReactNode {
   }
 }
 
-function generateCodigoActivo(ocNumero?: string, marca?: string, modelo?: string, serial?: string): string {
-  const ocPart = ocNumero?.replace(/[^0-9A-Za-z]/g, "").slice(-4).toUpperCase() ?? "XXXX";
+function generateCodigoActivo(
+  ocNumero?: string,
+  marca?: string,
+  modelo?: string,
+  serial?: string,
+): string {
+  const ocPart =
+    ocNumero
+      ?.replace(/[^0-9A-Za-z]/g, "")
+      .slice(-4)
+      .toUpperCase() ?? "XXXX";
   const modelPart = modelo?.slice(0, 3).toUpperCase() ?? "";
   const markPart = marca?.slice(0, 2).toUpperCase() ?? "";
   const unique = serial
-    ? serial.replace(/[^0-9A-Za-z]/g, "").slice(-4).toUpperCase()
+    ? serial
+        .replace(/[^0-9A-Za-z]/g, "")
+        .slice(-4)
+        .toUpperCase()
     : Date.now().toString(36).toUpperCase().slice(-4);
   return `ACT-${ocPart}-${markPart}${modelPart}${unique}`;
 }
 
 function ActivoFormContent({
-  form, setForm, editing, submit, fields, setOpen,
+  form,
+  setForm,
+  editing,
+  submit,
+  fields,
+  setOpen,
 }: CustomFormProps<Activo>) {
   const { data: categorias } = useCategorias();
   const { data: ordenes } = useOrdenesCompra();
@@ -179,6 +236,12 @@ function ActivoFormContent({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const { data: asignacionesActivo } = useAsignacionesPorActivo(editing?.idActivo ?? null);
+  const hasAsignacionActiva = useMemo(
+    () => (asignacionesActivo ?? []).some((a) => a.estadoAsignacion === "Activa"),
+    [asignacionesActivo],
+  );
+
   const handleOCChange = (value: string) => {
     const id = Number(value);
     const oc = ordenes?.find((o) => o.idOrden === id);
@@ -191,6 +254,7 @@ function ActivoFormContent({
       modelo: "",
       referencia: "",
       codigoActivo: generateCodigoActivo(oc?.numeroOC),
+      estadoActivo: "Disponible",
     }));
   };
 
@@ -198,7 +262,7 @@ function ActivoFormContent({
     const idItem = Number(value);
     const item = items.find((i) => i.idItemOC === idItem);
     if (!item) return;
-    const oc = ordenes?.find((o) => o.idOrden === form.idOrden as number);
+    const oc = ordenes?.find((o) => o.idOrden === (form.idOrden as number));
     setForm((prev) => ({
       ...prev,
       idItemOC: idItem,
@@ -207,6 +271,7 @@ function ActivoFormContent({
       modelo: item.modelo,
       referencia: item.referencia ?? "",
       codigoActivo: generateCodigoActivo(oc?.numeroOC, item.marca, item.modelo),
+      estadoActivo: "Disponible",
     }));
   };
 
@@ -223,8 +288,14 @@ function ActivoFormContent({
         return;
       }
     }
-    if (pendings.length === 0 && !form.serial) {
+    if (!form.serial && pendings.length === 0) {
       toast.error("Serial es obligatorio");
+      return;
+    }
+    if (editing && hasAsignacionActiva && form.estadoActivo !== "Asignado") {
+      toast.error(
+        "Este activo tiene una asignación activa; su estado debe permanecer 'Asignado'. Finaliza la asignación antes de cambiarlo.",
+      );
       return;
     }
     setIsSubmitting(true);
@@ -232,24 +303,28 @@ function ActivoFormContent({
       if (editing) {
         await submit(e);
       } else if (pendings.length > 0) {
-        const oc = ordenes?.find((o) => o.idOrden === ocId);
-        const item = items.find((i) => i.idItemOC === itemId);
-        for (const det of pendings) {
-          await createMutation.mutateAsync({
-            idOrden: ocId!,
-            idItemOC: itemId!,
-            idDetalleItemOC: det.idDetalleItemOC,
-            idCategoria: form.idCategoria as number,
-            marca: form.marca as string,
-            modelo: form.modelo as string,
-            referencia: (form.referencia as string) ?? null,
-            serial: det.serial,
-            codigoActivo: generateCodigoActivo(oc?.numeroOC, item?.marca, item?.modelo, det.serial),
-            estadoActivo: (form.estadoActivo as string) ?? "Disponible",
-            observaciones: (form.observaciones as string) ?? "",
-          } as Partial<Activo>);
-        }
-        toast.success(`${pendings.length} activo${pendings.length > 1 ? "s" : ""} creado${pendings.length > 1 ? "s" : ""} desde la orden de compra`);
+        const det = pendings[0];
+        await createMutation.mutateAsync({
+          idOrden: ocId!,
+          idItemOC: itemId!,
+          idDetalleItemOC: det.idDetalleItemOC,
+          idCategoria: form.idCategoria as number,
+          marca: form.marca as string,
+          modelo: form.modelo as string,
+          referencia: (form.referencia as string) ?? null,
+          serial: det.serial,
+          codigoActivo:
+            (form.codigoActivo as string) ||
+            generateCodigoActivo(
+              ordenes?.find((o) => o.idOrden === ocId)?.numeroOC,
+              items.find((i) => i.idItemOC === itemId)?.marca,
+              items.find((i) => i.idItemOC === itemId)?.modelo,
+              det.serial,
+            ),
+          estadoActivo: (form.estadoActivo as string) ?? "Disponible",
+          observaciones: (form.observaciones as string) ?? "",
+        } as Partial<Activo>);
+        toast.success("Activo creado desde la orden de compra");
       } else {
         await createMutation.mutateAsync({
           ...form,
@@ -258,7 +333,7 @@ function ActivoFormContent({
         } as Partial<Activo>);
         toast.success("Activo creado");
       }
-      queryClient.invalidateQueries({ queryKey: keys.ordenes.detail(ocId!) });
+      if (ocId) queryClient.invalidateQueries({ queryKey: keys.ordenes.detail(ocId) });
       setOpen(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error al crear activo(s)";
@@ -279,7 +354,9 @@ function ActivoFormContent({
             Orden de compra <span className="text-destructive"> *</span>
           </Label>
           <Select
-            value={form.idOrden !== undefined && form.idOrden !== "" ? String(form.idOrden) : undefined}
+            value={
+              form.idOrden !== undefined && form.idOrden !== "" ? String(form.idOrden) : undefined
+            }
             onValueChange={handleOCChange}
           >
             <SelectTrigger id="idOrden">
@@ -302,19 +379,35 @@ function ActivoFormContent({
               Producto en OC <span className="text-destructive"> *</span>
             </Label>
             <Select
-              value={form.idItemOC !== undefined && form.idItemOC !== "" ? String(form.idItemOC) : undefined}
+              value={
+                form.idItemOC !== undefined && form.idItemOC !== ""
+                  ? String(form.idItemOC)
+                  : undefined
+              }
               onValueChange={handleItemChange}
             >
               <SelectTrigger id="idItemOC">
                 <SelectValue placeholder="Selecciona producto..." />
               </SelectTrigger>
               <SelectContent>
-                {items.filter((i) => !i.detallesItem?.every((d) => d.procesado)).map((i) => (
-                  <SelectItem key={i.idItemOC} value={String(i.idItemOC)}>
-                    {i.nombreProducto} — {i.marca} {i.modelo}
-                  </SelectItem>
-                ))}
-                {items.every((i) => i.detallesItem?.every((d) => d.procesado)) && (
+                {items
+                  .filter(
+                    (i) =>
+                      !i.detallesItem ||
+                      i.detallesItem.length === 0 ||
+                      !i.detallesItem.every((d) => d.procesado),
+                  )
+                  .map((i) => (
+                    <SelectItem key={i.idItemOC} value={String(i.idItemOC)}>
+                      {i.nombreProducto} — {i.marca} {i.modelo}
+                    </SelectItem>
+                  ))}
+                {items.every(
+                  (i) =>
+                    i.detallesItem &&
+                    i.detallesItem.length > 0 &&
+                    i.detallesItem.every((d) => d.procesado),
+                ) && (
                   <div className="px-2 py-4 text-sm text-muted-foreground text-center">
                     Todos los productos de esta orden ya fueron procesados
                   </div>
@@ -324,49 +417,53 @@ function ActivoFormContent({
           </div>
         )}
 
-        {/* Seriales del producto (when available from OC) */}
+        {/* Serial y código cuando hay seriales pendientes desde OC */}
         {!!itemId && pendings.length > 0 && (
-          <div className="sm:col-span-2 space-y-2 border rounded-md p-3 bg-muted/20">
-            <Label className="text-sm font-medium">
-              Seriales del producto ({pendings.length} pendiente{pendings.length > 1 ? "s" : ""})
-            </Label>
-            <div className="space-y-1.5">
-              {pendings.map((det) => (
-                <div key={det.idDetalleItemOC} className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <Label className="text-xs text-muted-foreground">Serial</Label>
-                    <Input value={det.serial} readOnly className="bg-muted h-8" />
-                  </div>
-                  <div className="flex-1">
-                    <Label className="text-xs text-muted-foreground">Código de activo</Label>
-                    <Input
-                      value={generateCodigoActivo(
-                        ordenes?.find((o) => o.idOrden === ocId)?.numeroOC,
-                        items.find((i) => i.idItemOC === itemId)?.marca,
-                        items.find((i) => i.idItemOC === itemId)?.modelo,
-                        det.serial,
-                      )}
-                      readOnly
-                      className="bg-muted h-8 font-mono text-xs"
-                    />
-                  </div>
-                </div>
-              ))}
+          <>
+            {pendings.slice(0, 1).map((det) => (
+              <div key={det.idDetalleItemOC} className="space-y-2">
+                <Label htmlFor="serialOC">Serial</Label>
+                <Input id="serialOC" value={det.serial} readOnly className="bg-muted" />
+              </div>
+            ))}
+            <div className="space-y-2">
+              <Label htmlFor="codigoActivoOC">
+                Código activo <span className="text-destructive"> *</span>
+              </Label>
+              <Input
+                id="codigoActivoOC"
+                value={String(form.codigoActivo ?? "")}
+                onChange={(e) => setFormValue("codigoActivo", e.target.value)}
+                placeholder="Ej: ACT-0023-XX01"
+              />
             </div>
-          </div>
+          </>
         )}
 
-        {/* Código activo individual (when no OC serials) */}
-        {pendings.length === 0 && (
-          <div className="space-y-2">
-            <Label htmlFor="codigoActivo">Código activo</Label>
-            <Input
-              id="codigoActivo"
-              value={String(form.codigoActivo ?? "")}
-              readOnly
-              className="bg-muted"
-            />
-          </div>
+        {/* Campos manuales cuando NO hay OC con seriales pendientes */}
+        {(!itemId || pendings.length === 0) && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="codigoActivo">Código activo</Label>
+              <Input
+                id="codigoActivo"
+                value={String(form.codigoActivo ?? "")}
+                onChange={(e) => setFormValue("codigoActivo", e.target.value)}
+                readOnly
+                className="bg-muted"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="serial">
+                Serial <span className="text-destructive"> *</span>
+              </Label>
+              <Input
+                id="serial"
+                value={String(form.serial ?? "")}
+                onChange={(e) => setFormValue("serial", e.target.value)}
+              />
+            </div>
+          </>
         )}
 
         {/* Categoría (auto-filled from item) */}
@@ -375,13 +472,18 @@ function ActivoFormContent({
             Categoría <span className="text-destructive"> *</span>
           </Label>
           <Select
-            value={form.idCategoria !== undefined && form.idCategoria !== "" ? String(form.idCategoria) : undefined}
+            value={
+              form.idCategoria !== undefined && form.idCategoria !== ""
+                ? String(form.idCategoria)
+                : undefined
+            }
             onValueChange={(v) => {
               const opt = (categorias ?? []).find((c) => String(c.idCategoria) === v);
               setFormValue("idCategoria", opt ? opt.idCategoria : v);
             }}
+            disabled={!!itemId}
           >
-            <SelectTrigger id="idCategoria">
+            <SelectTrigger id="idCategoria" className={itemId ? "bg-muted" : ""}>
               <SelectValue placeholder="Selecciona..." />
             </SelectTrigger>
             <SelectContent>
@@ -403,6 +505,8 @@ function ActivoFormContent({
             id="marca"
             value={String(form.marca ?? "")}
             onChange={(e) => setFormValue("marca", e.target.value)}
+            readOnly={!!itemId}
+            className={itemId ? "bg-muted" : ""}
           />
         </div>
 
@@ -415,32 +519,10 @@ function ActivoFormContent({
             id="modelo"
             value={String(form.modelo ?? "")}
             onChange={(e) => setFormValue("modelo", e.target.value)}
+            readOnly={!!itemId}
+            className={itemId ? "bg-muted" : ""}
           />
         </div>
-
-        {/* Referencia (auto-filled from item) */}
-        <div className="space-y-2">
-          <Label htmlFor="referencia">Referencia</Label>
-          <Input
-            id="referencia"
-            value={String(form.referencia ?? "")}
-            onChange={(e) => setFormValue("referencia", e.target.value)}
-          />
-        </div>
-
-        {/* Serial (manual input when no OC serials) */}
-        {pendings.length === 0 && (
-          <div className="space-y-2">
-            <Label htmlFor="serial">
-              Serial <span className="text-destructive"> *</span>
-            </Label>
-            <Input
-              id="serial"
-              value={String(form.serial ?? "")}
-              onChange={(e) => setFormValue("serial", e.target.value)}
-            />
-          </div>
-        )}
 
         {/* Estado */}
         <div className="space-y-2">
@@ -450,14 +532,23 @@ function ActivoFormContent({
           <Select
             value={form.estadoActivo ? String(form.estadoActivo) : undefined}
             onValueChange={(v) => setFormValue("estadoActivo", v)}
+            disabled={!!itemId}
           >
-            <SelectTrigger id="estadoActivo">
+            <SelectTrigger id="estadoActivo" className={itemId ? "bg-muted" : ""}>
               <SelectValue placeholder="Selecciona..." />
             </SelectTrigger>
             <SelectContent>
-              {ESTADOS_ACTIVO.map((e) => (
+              {(editing && hasAsignacionActiva ? ["Asignado"] : ESTADOS_ACTIVO).map((e) => (
                 <SelectItem key={e} value={e}>
-                  {e === "Disponible" ? "Disponible" : e === "Asignado" ? "Asignado" : e === "EnReparacion" ? "En reparación" : e === "DadoDeBaja" ? "Dado de baja" : "Venta"}
+                  {e === "Disponible"
+                    ? "Disponible"
+                    : e === "Asignado"
+                      ? "Asignado"
+                      : e === "EnReparacion"
+                        ? "En reparación"
+                        : e === "DadoDeBaja"
+                          ? "Dado de baja"
+                          : "Venta"}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -471,6 +562,8 @@ function ActivoFormContent({
             id="observaciones"
             value={String(form.observaciones ?? "")}
             onChange={(e) => setFormValue("observaciones", e.target.value)}
+            readOnly={!!itemId}
+            className={itemId ? "bg-muted" : ""}
             rows={3}
           />
         </div>
@@ -482,7 +575,7 @@ function ActivoFormContent({
         </Button>
         <Button type="submit" variant="brand" disabled={busy}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {editing ? "Guardar cambios" : pendings.length > 1 ? `Crear ${pendings.length} activos` : "Crear"}
+          {editing ? "Guardar cambios" : pendings.length > 0 ? "Crear activo" : "Crear"}
         </Button>
       </DialogFooter>
     </form>
@@ -491,24 +584,56 @@ function ActivoFormContent({
 
 function ActivosPage() {
   const { data: activos, isLoading } = useActivos();
+  const { data: asignaciones } = useAsignaciones();
   const { data: categorias } = useCategorias();
   const { data: ordenes } = useOrdenesCompra();
   const createMutation = useCreateActivo();
   const updateMutation = useUpdateActivo();
   const deleteMutation = useDeleteActivo();
+  const regresoReparacionMutation = useRegistrarRegresoReparacion();
 
   const [estadoFilter, setEstadoFilter] = useState("all");
+  const [categoriaFilter, setCategoriaFilter] = useState("all");
   const [historialActivo, setHistorialActivo] = useState<Activo | null>(null);
-  const { data: movimientos, isLoading: loadingHistorial } = useMovimientosPorActivo(historialActivo?.idActivo ?? null);
+  const [regresoReparacionActivo, setRegresoReparacionActivo] = useState<Activo | null>(null);
+  const [observacionesRegreso, setObservacionesRegreso] = useState("");
+  const { data: movimientos, isLoading: loadingHistorial } = useMovimientosPorActivo(
+    historialActivo?.idActivo ?? null,
+  );
+
+  const activoAsignadoIds = useMemo(
+    () =>
+      new Set(
+        (asignaciones ?? []).filter((a) => a.estadoAsignacion === "Activa").map((a) => a.idActivo),
+      ),
+    [asignaciones],
+  );
+
+  const estadoEfectivo = useCallback(
+    (item: Activo): string => {
+      if (item.estadoActivo === "Disponible" && activoAsignadoIds.has(item.idActivo))
+        return "Asignado";
+      return item.estadoActivo;
+    },
+    [activoAsignadoIds],
+  );
+
+  const hasActiveFilters = estadoFilter !== "all" || categoriaFilter !== "all";
+
+  const clearFilters = () => {
+    setEstadoFilter("all");
+    setCategoriaFilter("all");
+  };
 
   const filterFn = useMemo(() => {
-    if (estadoFilter === "all") return undefined;
-    return (item: Activo) => item.estadoActivo === estadoFilter;
-  }, [estadoFilter]);
+    return (item: Activo) => {
+      if (estadoFilter !== "all" && estadoEfectivo(item) !== estadoFilter) return false;
+      if (categoriaFilter !== "all" && String(item.idCategoria) !== categoriaFilter) return false;
+      return true;
+    };
+  }, [estadoFilter, categoriaFilter, estadoEfectivo]);
 
-  const renderCustomForm = (props: CustomFormProps<Activo>) => (
-    <ActivoFormContent {...props} />
-  );
+  const renderCustomForm = (props: CustomFormProps<Activo>) => <ActivoFormContent {...props} />;
 
   return (
     <>
@@ -522,7 +647,7 @@ function ActivosPage() {
         searchKeys={["serial", "marca", "modelo", "codigoActivo", "observaciones"]}
         filterFn={filterFn}
         filters={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-muted-foreground">Estado:</span>
             <Select value={estadoFilter} onValueChange={setEstadoFilter}>
               <SelectTrigger className="h-9 w-40">
@@ -531,13 +656,39 @@ function ActivosPage() {
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 {ESTADOS_ACTIVO.map((e) => (
-                  <SelectItem key={e} value={e}>{estadoLabels[e] ?? e}</SelectItem>
+                  <SelectItem key={e} value={e}>
+                    {estadoLabels[e] ?? e}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <span className="text-xs text-muted-foreground">Categoría:</span>
+            <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
+              <SelectTrigger className="h-9 w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {(categorias ?? []).map((c) => (
+                  <SelectItem key={c.idCategoria} value={String(c.idCategoria)}>
+                    {c.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 px-2 text-muted-foreground"
+                onClick={clearFilters}
+              >
+                <X className="h-4 w-4 mr-1" /> Limpiar
+              </Button>
+            )}
           </div>
         }
-        defaultValues={{}}
+        defaultValues={{ estadoActivo: "Disponible" }}
         columns={[
           { header: "Código", key: "codigoActivo" },
           { header: "Serial", key: "serial" },
@@ -550,8 +701,8 @@ function ActivosPage() {
           {
             header: "Estado",
             render: (r) => (
-              <Badge variant="outline" className={estadoTint[r.estadoActivo]}>
-                {estadoLabels[r.estadoActivo] ?? r.estadoActivo}
+              <Badge variant="outline" className={estadoTint[estadoEfectivo(r)]}>
+                {estadoLabels[estadoEfectivo(r)] ?? estadoEfectivo(r)}
               </Badge>
             ),
           },
@@ -561,7 +712,6 @@ function ActivosPage() {
           { key: "serial", label: "Serial", type: "text", required: true },
           { key: "marca", label: "Marca", type: "text", required: true },
           { key: "modelo", label: "Modelo", type: "text", required: true },
-          { key: "referencia", label: "Referencia", type: "text" },
           {
             key: "idCategoria",
             label: "Categoría",
@@ -593,14 +743,30 @@ function ActivosPage() {
         ]}
         renderCustomForm={renderCustomForm}
         extraActions={(row) => (
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => setHistorialActivo(row)}
-            aria-label="Historial de asignaciones"
-          >
-            <History className="h-4 w-4" />
-          </Button>
+          <>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setHistorialActivo(row)}
+              aria-label="Historial de asignaciones"
+            >
+              <History className="h-4 w-4" />
+            </Button>
+            {estadoEfectivo(row) === "EnReparacion" && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => {
+                  setRegresoReparacionActivo(row);
+                  setObservacionesRegreso("");
+                }}
+                aria-label="Registrar regreso de reparación"
+                className="text-warning hover:text-warning"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            )}
+          </>
         )}
         onCreate={(data) => createMutation.mutateAsync(data)}
         onUpdate={(id, data) => updateMutation.mutateAsync({ id, data })}
@@ -613,9 +779,7 @@ function ActivosPage() {
       <Dialog open={!!historialActivo} onOpenChange={(o) => !o && setHistorialActivo(null)}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              Historial del activo — {historialActivo?.serial ?? ""}
-            </DialogTitle>
+            <DialogTitle>Historial del activo — {historialActivo?.serial ?? ""}</DialogTitle>
             {historialActivo && (
               <p className="text-sm text-muted-foreground">
                 {historialActivo.marca} {historialActivo.modelo} — {historialActivo.codigoActivo}
@@ -633,7 +797,9 @@ function ActivosPage() {
                 const tint = tipoBg[m.tipoMovimiento] ?? "bg-muted/50 text-muted-foreground";
                 return (
                   <div key={m.idHistorial} className="flex items-start gap-3 rounded-lg border p-3">
-                    <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${tint}`}>
+                    <div
+                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${tint}`}
+                    >
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -643,14 +809,15 @@ function ActivosPage() {
                         </Badge>
                         <span className="text-xs text-muted-foreground">
                           {new Date(m.fechaMovimiento).toLocaleDateString("es-CO", {
-                            year: "numeric", month: "short", day: "numeric",
-                            hour: "2-digit", minute: "2-digit",
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
                           })}
                         </span>
                       </div>
-                      <div className="mt-1 text-sm">
-                        {renderMovimientoDesc(m)}
-                      </div>
+                      <div className="mt-1 text-sm">{renderMovimientoDesc(m)}</div>
                     </div>
                   </div>
                 );
@@ -664,6 +831,75 @@ function ActivosPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setHistorialActivo(null)}>
               Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!regresoReparacionActivo}
+        onOpenChange={(o) => !o && setRegresoReparacionActivo(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Registrar Regreso de Reparación</DialogTitle>
+            <DialogDescription>
+              Activo: {regresoReparacionActivo?.serial} — {regresoReparacionActivo?.marca}{" "}
+              {regresoReparacionActivo?.modelo}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="observacionesRegreso">
+                Observaciones del regreso <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="observacionesRegreso"
+                value={observacionesRegreso}
+                onChange={(e) => setObservacionesRegreso(e.target.value)}
+                placeholder="Describa qué se reparó, quién lo realizó, costo, etc."
+                rows={4}
+                required
+              />
+            </div>
+            {regresoReparacionMutation.isPending && (
+              <div className="flex justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRegresoReparacionActivo(null)}
+              disabled={regresoReparacionMutation.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="brand"
+              onClick={async () => {
+                if (!observacionesRegreso.trim()) {
+                  toast.error("Las observaciones son obligatorias");
+                  return;
+                }
+                try {
+                  await regresoReparacionMutation.mutateAsync({
+                    id: regresoReparacionActivo!.idActivo,
+                    observaciones: observacionesRegreso.trim(),
+                  });
+                  toast.success("Activo regresado a Disponible exitosamente");
+                  setRegresoReparacionActivo(null);
+                  setObservacionesRegreso("");
+                } catch (err) {
+                  const message =
+                    err instanceof Error ? err.message : "Error al registrar el regreso";
+                  toast.error(sanitizeError(message));
+                }
+              }}
+              disabled={regresoReparacionMutation.isPending || !observacionesRegreso.trim()}
+            >
+              Confirmar Regreso
             </Button>
           </DialogFooter>
         </DialogContent>

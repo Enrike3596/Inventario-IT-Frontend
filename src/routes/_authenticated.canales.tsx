@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ResourcePage } from "@/components/resource-page";
 import { useCanales, useCreateCanal, useUpdateCanal, useDeleteCanal } from "@/lib/queries";
@@ -13,6 +14,18 @@ function Page() {
   const createMutation = useCreateCanal();
   const updateMutation = useUpdateCanal();
   const deleteMutation = useDeleteCanal();
+
+  const validate = useMemo(() => {
+    return (form: Record<string, unknown>, editing: Canal | null) => {
+      const nombre = ((form.nombre as string) ?? "").trim().toLowerCase();
+      if (!nombre) return null;
+      const duplicate = (canales ?? []).find(
+        (c) => c.nombre.toLowerCase() === nombre && c.idCanal !== editing?.idCanal,
+      );
+      if (duplicate) return `Ya existe un canal con el nombre "${form.nombre}"`;
+      return null;
+    };
+  }, [canales]);
 
   return (
     <ResourcePage<Canal>
@@ -38,6 +51,7 @@ function Page() {
       loadingCreate={createMutation.isPending}
       loadingUpdate={updateMutation.isPending}
       loadingDelete={deleteMutation.isPending}
+      validate={validate}
     />
   );
 }

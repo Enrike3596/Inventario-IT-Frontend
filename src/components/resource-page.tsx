@@ -1,5 +1,14 @@
 import { useMemo, useState, useEffect, type ReactNode } from "react";
-import { Plus, Pencil, Trash2, Search, Loader2, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  Loader2,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -100,11 +109,13 @@ interface ResourcePageProps<T> {
   loadingDelete?: boolean;
   transformCreate?: (data: Partial<T>) => Partial<T>;
   transformUpdate?: (data: Partial<T>) => Partial<T>;
+  transformEdit?: (row: T) => Record<string, unknown>;
   filters?: ReactNode;
   filterFn?: (item: T) => boolean;
   module?: string;
   extraActions?: (row: T) => ReactNode;
   renderCustomForm?: (props: CustomFormProps<T>) => ReactNode;
+  validate?: (form: Record<string, unknown>, editing: T | null) => string | null;
 }
 
 export function ResourcePage<T>({
@@ -126,11 +137,13 @@ export function ResourcePage<T>({
   loadingDelete,
   transformCreate,
   transformUpdate,
+  transformEdit,
   filters,
   filterFn,
   module,
   extraActions,
   renderCustomForm,
+  validate,
 }: ResourcePageProps<T>) {
   const { can, user } = useAuth();
   const [query, setQuery] = useState("");
@@ -190,7 +203,9 @@ export function ResourcePage<T>({
       setEditReasonOpen(true);
       return;
     }
-    setForm({ ...(row as unknown as Record<string, unknown>) });
+    setForm(
+      transformEdit ? transformEdit(row) : { ...(row as unknown as Record<string, unknown>) },
+    );
     setEditing(row);
     setOpen(true);
   };
@@ -198,7 +213,10 @@ export function ResourcePage<T>({
   const confirmEditReason = () => {
     if (!pendingEditRow) return;
     const row = pendingEditRow;
-    setForm((prev) => ({ ...(row as unknown as Record<string, unknown>), motivoEdicion: editReason }));
+    const base = transformEdit
+      ? transformEdit(row)
+      : { ...(row as unknown as Record<string, unknown>) };
+    setForm((prev) => ({ ...base, motivoEdicion: editReason }));
     setEditing(row);
     setEditReasonOpen(false);
     setPendingEditRow(null);
@@ -213,14 +231,25 @@ export function ResourcePage<T>({
         return;
       }
     }
+    if (validate) {
+      const error = validate(form, editing);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       if (editing) {
-        const payload = transformUpdate ? transformUpdate(form as Partial<T>) : (form as Partial<T>);
+        const payload = transformUpdate
+          ? transformUpdate(form as Partial<T>)
+          : (form as Partial<T>);
         await onUpdate(editing[idKey] as unknown as number, payload);
         toast.success(`${singular} actualizado`);
       } else {
-        const payload = transformCreate ? transformCreate(form as Partial<T>) : (form as Partial<T>);
+        const payload = transformCreate
+          ? transformCreate(form as Partial<T>)
+          : (form as Partial<T>);
         await onCreate(payload);
         toast.success(`${singular} creado`);
       }
@@ -279,9 +308,7 @@ export function ResourcePage<T>({
               />
             </div>
             {filters && (
-              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                {filters}
-              </div>
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">{filters}</div>
             )}
             <span className="text-xs text-muted-foreground sm:ml-auto whitespace-nowrap">
               {filtered.length} registro{filtered.length === 1 ? "" : "s"}
@@ -296,7 +323,10 @@ export function ResourcePage<T>({
               <TableHeader>
                 <TableRow className="bg-muted/40">
                   {tableColumns.map((c, i) => (
-                    <TableHead key={i} className={cn(c.className, c.hideOnMobile && "hidden md:table-cell")}>
+                    <TableHead
+                      key={i}
+                      className={cn(c.className, c.hideOnMobile && "hidden md:table-cell")}
+                    >
                       {c.header}
                     </TableHead>
                   ))}
@@ -323,7 +353,10 @@ export function ResourcePage<T>({
                   paginated.map((row) => (
                     <TableRow key={String(row[idKey])} className="hover:bg-muted/30">
                       {tableColumns.map((c, i) => (
-                        <TableCell key={i} className={cn(c.className, c.hideOnMobile && "hidden md:table-cell")}>
+                        <TableCell
+                          key={i}
+                          className={cn(c.className, c.hideOnMobile && "hidden md:table-cell")}
+                        >
                           {c.render ? c.render(row) : String(row[c.key as keyof T] ?? "")}
                         </TableCell>
                       ))}
@@ -383,16 +416,21 @@ export function ResourcePage<T>({
             paginated.map((row) => (
               <Card key={String(row[idKey])} className="p-3">
                 <div className="space-y-2">
-                  {columns.filter((c) => !c.hideOnMobile).map((c) => (
-                    <div key={String(c.key ?? c.header)} className="flex items-start justify-between gap-2">
-                      <span className="text-xs text-muted-foreground font-medium shrink-0 w-28 leading-5">
-                        {c.header}
-                      </span>
-                      <span className="text-sm text-right leading-5">
-                        {c.render ? c.render(row) : String(row[c.key as keyof T] ?? "—")}
-                      </span>
-                    </div>
-                  ))}
+                  {columns
+                    .filter((c) => !c.hideOnMobile)
+                    .map((c) => (
+                      <div
+                        key={String(c.key ?? c.header)}
+                        className="flex items-start justify-between gap-2"
+                      >
+                        <span className="text-xs text-muted-foreground font-medium shrink-0 w-28 leading-5">
+                          {c.header}
+                        </span>
+                        <span className="text-sm text-right leading-5">
+                          {c.render ? c.render(row) : String(row[c.key as keyof T] ?? "—")}
+                        </span>
+                      </div>
+                    ))}
                 </div>
                 <div className="flex items-center justify-end gap-1 pt-3 mt-3 border-t">
                   <Button size="sm" variant="ghost" onClick={() => setViewing(row)}>
@@ -405,7 +443,12 @@ export function ResourcePage<T>({
                     </Button>
                   )}
                   {canDelete && (
-                    <Button size="sm" variant="ghost" onClick={() => setToDelete(row)} className="text-destructive hover:text-destructive">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setToDelete(row)}
+                      className="text-destructive hover:text-destructive"
+                    >
                       <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar
                     </Button>
                   )}
@@ -418,7 +461,9 @@ export function ResourcePage<T>({
         {filtered.length > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">Filas por página:</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                Filas por página:
+              </span>
               <Select
                 value={String(pageSize)}
                 onValueChange={(v) => {
@@ -580,7 +625,15 @@ export function ResourcePage<T>({
       </AlertDialog>
 
       {/* Edit reason dialog (coordinador) */}
-      <Dialog open={editReasonOpen} onOpenChange={(o) => { if (!o) { setEditReasonOpen(false); setPendingEditRow(null); } }}>
+      <Dialog
+        open={editReasonOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            setEditReasonOpen(false);
+            setPendingEditRow(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Motivo de la edición</DialogTitle>
@@ -597,7 +650,13 @@ export function ResourcePage<T>({
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setEditReasonOpen(false); setPendingEditRow(null); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditReasonOpen(false);
+                setPendingEditRow(null);
+              }}
+            >
               Cancelar
             </Button>
             <Button variant="brand" onClick={confirmEditReason} disabled={!editReason.trim()}>
@@ -626,7 +685,9 @@ export function ResourcePage<T>({
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setViewing(null)}>Cerrar</Button>
+            <Button variant="outline" onClick={() => setViewing(null)}>
+              Cerrar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -4,12 +4,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth, ROLE_LABEL } from "@/lib/auth";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -49,7 +44,11 @@ function HeaderBar() {
                 onClick={toggleSidebar}
                 className="h-8 w-8 shrink-0 text-muted-foreground transition-colors hover:text-foreground"
               >
-                {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+                {collapsed ? (
+                  <PanelLeftOpen className="h-5 w-5" />
+                ) : (
+                  <PanelLeftClose className="h-5 w-5" />
+                )}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
@@ -86,7 +85,10 @@ function HeaderBar() {
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive">
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
                   <LogOut className="h-4 w-4" />
                   Cerrar sesión
                 </DropdownMenuItem>

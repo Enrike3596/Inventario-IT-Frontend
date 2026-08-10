@@ -22,11 +22,32 @@ export class ApiError extends Error {
   }
 }
 
+export async function apiUpload<T = unknown>(path: string, formData: FormData): Promise<T> {
+  if (!RAW_API_URL) {
+    throw new ApiError("VITE_API_URL no configurada.", 0);
+  }
+  const API_URL = RAW_API_URL.replace(/\/+$/, "");
+  const headers = new Headers();
+  const token = getToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const res = await fetch(`${API_URL}${path}`, { method: "POST", headers, body: formData });
+  if (res.status === 204) return undefined as T;
+  const body = await res.json();
+  if (!res.ok) {
+    const msg = sanitizeError(body?.mensaje ?? body?.detail ?? body?.title ?? res.statusText);
+    throw new ApiError(msg, res.status);
+  }
+  const response = body as ApiResponse<T>;
+  if (response.exito === true) return deepMapEnums(response.data) as T;
+  throw new ApiError(sanitizeError(response.mensaje ?? "Error desconocido"), res.status);
+}
+
 const enumValues = {
   EstadoGenerico: ["Activo", "Inactivo"] as const,
   EstadoActivo: ["Disponible", "Asignado", "EnReparacion", "DadoDeBaja", "Venta"] as const,
   EstadoAsignacion: ["Activa", "Finalizada"] as const,
   TipoMovimiento: ["Entrada", "Salida", "Asignacion", "Devolucion", "Reparacion", "Baja"] as const,
+  EstadoActa: ["Pendiente", "Enviada", "Firmada", "Vencida"] as const,
 };
 
 function mapEnum<T extends string>(value: unknown, values: readonly T[]): T {
@@ -48,8 +69,20 @@ function deepMapEnums(obj: unknown): unknown {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
     let mapped = deepMapEnums(value);
-    if (key === "estado" || key === "estadoUsuario") {
+    if (key === "estadoUsuario") {
       mapped = mapEnum(mapped, enumValues.EstadoGenerico);
+    } else if (key === "estado") {
+      const str =
+        typeof mapped === "string"
+          ? mapped
+          : typeof mapped === "number"
+            ? enumValues.EstadoGenerico[mapped]
+            : "";
+      if (enumValues.EstadoActa.includes(str as any)) {
+        mapped = mapEnum(mapped, enumValues.EstadoActa);
+      } else {
+        mapped = mapEnum(mapped, enumValues.EstadoGenerico);
+      }
     } else if (key === "estadoActivo") {
       mapped = mapEnum(mapped, enumValues.EstadoActivo);
     } else if (key === "estadoAsignacion") {
@@ -91,6 +124,63 @@ export async function apiFetch<T = unknown>(path: string, init: RequestInit = {}
     return deepMapEnums(response.data) as T;
   }
   throw new ApiError(sanitizeError(response.mensaje ?? "Error desconocido"), res.status);
+}
+
+export async function apiFetchRaw<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
+  if (!RAW_API_URL) {
+    throw new ApiError("VITE_API_URL no configurada.", 0);
+  }
+  const API_URL = RAW_API_URL.replace(/\/+$/, "");
+  const headers = new Headers(init.headers);
+  headers.set("Content-Type", "application/json");
+  const token = getToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const res = await fetch(`${API_URL}${path}`, { ...init, headers });
+  const body = await res.json();
+  if (!res.ok) {
+    const msg = sanitizeError(body?.mensaje ?? body?.detail ?? body?.title ?? res.statusText);
+    throw new ApiError(msg, res.status);
+  }
+  return body as T;
+}
+
+export async function apiDownload(
+  path: string,
+  init: RequestInit = {},
+  fallbackFilename = "descarga",
+): Promise<void> {
+  if (!RAW_API_URL) {
+    throw new ApiError("VITE_API_URL no configurada.", 0);
+  }
+  const API_URL = RAW_API_URL.replace(/\/+$/, "");
+  const headers = new Headers(init.headers);
+  headers.set("Content-Type", "application/json");
+  const token = getToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const res = await fetch(`${API_URL}${path}`, { ...init, headers });
+  if (!res.ok) {
+    const text = await res.text();
+    let msg = res.statusText;
+    try {
+      const body = JSON.parse(text);
+      msg = body?.mensaje ?? body?.detail ?? body?.title ?? res.statusText;
+    } catch {
+      msg = text || res.statusText;
+    }
+    throw new ApiError(sanitizeError(msg), res.status);
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition");
+  const match = disposition?.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
+  const filename = match ? decodeURIComponent(match[1].replace(/"/g, "")) : fallbackFilename;
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
 
 const verbosePatterns = [

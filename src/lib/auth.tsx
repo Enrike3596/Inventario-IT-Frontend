@@ -51,7 +51,8 @@ const ROLE_MAP: Record<string, RoleKey> = {
   agente_soporte: "agente_soporte",
   usuario_final: "coordinador",
   coordinador: "coordinador",
-  auditor: "super_admin",
+  auditor: "auditor",
+  usuario: "usuario",
 };
 
 function mapRole(nombreRol?: string): RoleKey {
@@ -138,9 +139,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const can: AuthState["can"] = (action, module) => {
     if (!user) return false;
     if (user.role === "super_admin") return true;
+    if (user.role === "auditor") return action === "view";
+    if (user.role === "usuario") return false;
     if (user.role === "agente_soporte") {
       if (action === "view") return true;
-      if (action === "create" && module && ["asignaciones", "salidas", "ordenes-compra"].includes(module)) return true;
+      if (
+        action === "create" &&
+        module &&
+        ["asignaciones", "salidas", "ordenes-compra"].includes(module)
+      )
+        return true;
       return false;
     }
     if (user.role === "coordinador") return action !== "delete";
@@ -166,4 +174,6 @@ export const ROLE_LABEL: Record<RoleKey, string> = {
   super_admin: "Super Administrador",
   coordinador: "Coordinador",
   agente_soporte: "Agente Soporte TI",
+  auditor: "Auditor",
+  usuario: "Usuario",
 };

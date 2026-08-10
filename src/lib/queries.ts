@@ -1,5 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "./api";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { apiFetch, apiFetchRaw, apiDownload } from "./api";
+import { uploadFile as uploadFileService } from "./file-storage";
+import { sendEmail as sendEmailService } from "./email";
 import type {
   Role,
   Sede,
@@ -15,6 +17,14 @@ import type {
   Salida,
   AsignacionUsuario,
   Movimiento,
+  FileUploadResponse,
+  EmailRequest,
+  ActaFirma,
+  ActaFirmaPublic,
+  FirmaRequest,
+  Area,
+  ReporteInventarioRequest,
+  ReportePreviewResponse,
 } from "./types";
 
 // ---- Query key factories ----
@@ -25,13 +35,20 @@ export const keys = {
   categorias: { all: ["categorias"] as const },
   parqueaderos: { all: ["parqueaderos"] as const },
   ordenes: { all: ["ordenes"] as const, detail: (id: number) => ["ordenes", id] as const },
-  itemsOC: { all: ["itemsOC"] as const, porOrden: (id: number) => ["itemsOC", "orden", id] as const },
-  detallesItemOC: { all: ["detallesItemOC"] as const, porItem: (id: number) => ["detallesItemOC", "item", id] as const },
+  itemsOC: {
+    all: ["itemsOC"] as const,
+    porOrden: (id: number) => ["itemsOC", "orden", id] as const,
+  },
+  detallesItemOC: {
+    all: ["detallesItemOC"] as const,
+    porItem: (id: number) => ["detallesItemOC", "item", id] as const,
+  },
   activos: { all: ["activos"] as const },
   canales: { all: ["canales"] as const },
   salidas: { all: ["salidas"] as const },
   asignaciones: { all: ["asignaciones"] as const },
   movimientos: { all: ["movimientos"] as const },
+  areas: { all: ["areas"] as const },
 };
 
 // ---- Generic hook factory ----
@@ -165,7 +182,10 @@ export function useConfirmarIngreso() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      apiFetch<Activo[]>(`/api/OrdenesCompra/${id}/confirmar`, { method: "POST" }),
+      apiFetch<Activo[]>(`/api/OrdenesCompra/${id}/confirmar`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.ordenes.all as unknown as string[] });
       qc.invalidateQueries({ queryKey: keys.activos.all as unknown as string[] });
@@ -216,7 +236,10 @@ export function useCreateDetalleItemOC() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: Partial<DetalleItemOC>) =>
-      apiFetch<DetalleItemOC>("/api/DetallesItemOC", { method: "POST", body: JSON.stringify(data) }),
+      apiFetch<DetalleItemOC>("/api/DetallesItemOC", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.detallesItemOC.all as unknown as string[] });
       qc.invalidateQueries({ queryKey: keys.itemsOC.all as unknown as string[] });
@@ -227,7 +250,10 @@ export function useCreateDetalleItemOCBatch() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { idItemOC: number; seriales: string[] }) =>
-      apiFetch<DetalleItemOC[]>("/api/DetallesItemOC/batch", { method: "POST", body: JSON.stringify(data) }),
+      apiFetch<DetalleItemOC[]>("/api/DetallesItemOC/batch", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.detallesItemOC.all as unknown as string[] });
       qc.invalidateQueries({ queryKey: keys.itemsOC.all as unknown as string[] });
@@ -258,6 +284,21 @@ export function useUpdateActivo() {
 export function useDeleteActivo() {
   return useDelete(keys.activos.all, "/api/Activos");
 }
+export function useRegistrarRegresoReparacion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, observaciones }: { id: number; observaciones: string }) =>
+      apiFetch<Activo>(`/api/Activos/${id}/regreso-reparacion`, {
+        method: "POST",
+        body: JSON.stringify({ observaciones }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.activos.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.movimientos.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.salidas.all as unknown as string[] });
+    },
+  });
+}
 
 // ---- Canales ----
 export function useCanales() {
@@ -277,14 +318,37 @@ export function useDeleteCanal() {
 export function useSalidas() {
   return useList<Salida>(keys.salidas.all, "/api/Salidas");
 }
+
+function invalidateSalidaRelaciones(qc: QueryClient) {
+  qc.invalidateQueries({ queryKey: keys.salidas.all as unknown as string[] });
+  qc.invalidateQueries({ queryKey: keys.activos.all as unknown as string[] });
+  qc.invalidateQueries({ queryKey: keys.movimientos.all as unknown as string[] });
+}
+
 export function useCreateSalida() {
-  return useCreate<Salida>(keys.salidas.all, "/api/Salidas");
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Salida>) =>
+      apiFetch<Salida>("/api/Salidas", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => invalidateSalidaRelaciones(qc),
+  });
 }
+
 export function useUpdateSalida() {
-  return useUpdate<Salida>(keys.salidas.all, "/api/Salidas");
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Salida> }) =>
+      apiFetch<Salida>(`/api/Salidas/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    onSuccess: () => invalidateSalidaRelaciones(qc),
+  });
 }
+
 export function useDeleteSalida() {
-  return useDelete(keys.salidas.all, "/api/Salidas");
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiFetch<void>(`/api/Salidas/${id}`, { method: "DELETE" }),
+    onSuccess: () => invalidateSalidaRelaciones(qc),
+  });
 }
 
 // ---- Asignaciones ----
@@ -352,5 +416,171 @@ export function useMovimientosPorActivo(idActivo: number | null) {
     queryKey: [...keys.movimientos.all, "activo", idActivo] as string[],
     queryFn: () => apiFetch<Movimiento[]>(`/api/HistorialActivo/activo/${idActivo}`),
     enabled: !!idActivo,
+  });
+}
+
+// ---- Areas ----
+export function useAreas() {
+  return useList<Area>(keys.areas.all, "/api/Area");
+}
+export function useCreateArea() {
+  return useCreate<Area>(keys.areas.all, "/api/Area");
+}
+export function useUpdateArea() {
+  return useUpdate<Area>(keys.areas.all, "/api/Area");
+}
+export function useDeleteArea() {
+  return useDelete(keys.areas.all, "/api/Area");
+}
+
+// ---- File Storage ----
+export function useUploadFile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ container, file }: { container: string; file: File }) =>
+      uploadFileService(container, file),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["archivos"] as string[] });
+    },
+  });
+}
+
+// ---- Email ----
+export function useSendEmail() {
+  return useMutation({
+    mutationFn: (msg: EmailRequest) => sendEmailService(msg),
+  });
+}
+
+// ---- Actas / Firma Electrónica ----
+const actaKeys = {
+  porDestino: (tipo: string, id: number) => ["acta", tipo, String(id)] as string[],
+  publica: (token: string) => ["acta", "public", token] as string[],
+};
+
+export function useGenerarActa() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { tipoDestino: string; idDestino: number }) =>
+      apiFetch<ActaFirma>("/api/Actas/generar", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["acta"] as string[] });
+    },
+  });
+}
+
+export function useEnviarActa() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { tipoDestino: string; idDestino: number }) =>
+      apiFetch<ActaFirma>("/api/Actas/enviar", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["acta"] as string[] });
+    },
+  });
+}
+
+export function useActaPorDestino(tipo: string | null, idDestino: number | null) {
+  return useQuery<ActaFirma>({
+    queryKey: actaKeys.porDestino(tipo ?? "", idDestino ?? 0),
+    queryFn: () => apiFetch<ActaFirma>(`/api/Actas/destino?tipo=${tipo}&id=${idDestino}`),
+    enabled: !!tipo && !!idDestino,
+    retry: false,
+  });
+}
+
+export function useEliminarActa() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { tipoDestino: string; idDestino: number }) =>
+      apiFetch(`/api/Actas/destino?tipo=${payload.tipoDestino}&id=${payload.idDestino}`, {
+        method: "DELETE",
+      }),
+    onSuccess: (_data, payload) => {
+      qc.removeQueries({ queryKey: ["acta", payload.tipoDestino, String(payload.idDestino)] });
+      qc.invalidateQueries({ queryKey: ["acta"] as string[] });
+    },
+  });
+}
+
+export function useActaPublica(token: string) {
+  return useQuery<ActaFirmaPublic>({
+    queryKey: actaKeys.publica(token),
+    queryFn: () => apiFetch<ActaFirmaPublic>(`/api/Actas/firmar/${token}`),
+    enabled: !!token,
+  });
+}
+
+export function useFirmarActa() {
+  return useMutation({
+    mutationFn: ({ token, data }: { token: string; data: FirmaRequest }) =>
+      apiFetch<ActaFirma>(`/api/Actas/firmar/${token}`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  });
+}
+
+// ---- Informes de inventario ----
+export const REPORTE_COLUMNAS: { key: string; label: string }[] = [
+  { key: "codigoActivo", label: "Código activo" },
+  { key: "serial", label: "Serial" },
+  { key: "marca", label: "Marca" },
+  { key: "modelo", label: "Modelo" },
+  { key: "categoria", label: "Categoría" },
+  { key: "estado", label: "Estado" },
+  { key: "fechaAdquisicion", label: "Fecha adquisición" },
+  { key: "fechaBaja", label: "Fecha baja" },
+  { key: "numeroOC", label: "N° orden de compra" },
+  { key: "proveedor", label: "Proveedor" },
+  { key: "fechaCompra", label: "Fecha compra" },
+  { key: "costo", label: "Costo" },
+  { key: "responsable", label: "Responsable" },
+  { key: "area", label: "Área" },
+  { key: "sede", label: "Sede" },
+  { key: "observaciones", label: "Observaciones" },
+];
+
+export const REPORTE_ESTADOS = [
+  "Disponible",
+  "Asignado",
+  "EnReparacion",
+  "DadoDeBaja",
+  "Venta",
+] as const;
+
+export function useReportePreview(request: ReporteInventarioRequest | null) {
+  return useQuery<ReportePreviewResponse>({
+    queryKey: ["reportes", "preview", JSON.stringify(request)],
+    queryFn: () =>
+      apiFetchRaw<ReportePreviewResponse>("/api/reportes/preview", {
+        method: "POST",
+        body: JSON.stringify(request),
+      }),
+    enabled: !!request,
+    retry: false,
+  });
+}
+
+export function useExportarReporte() {
+  return useMutation({
+    mutationFn: ({
+      request,
+      formato,
+    }: {
+      request: ReporteInventarioRequest;
+      formato: "pdf" | "excel";
+    }) =>
+      apiDownload(
+        `/api/reportes/exportar?formato=${formato}`,
+        { method: "POST", body: JSON.stringify(request) },
+        `informe-inventario-${formato}`,
+      ),
   });
 }

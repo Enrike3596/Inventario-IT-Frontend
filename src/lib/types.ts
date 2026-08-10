@@ -3,9 +3,10 @@
 export type EstadoGenerico = "Activo" | "Inactivo";
 export type EstadoActivo = "Disponible" | "Asignado" | "EnReparacion" | "DadoDeBaja" | "Venta";
 export type EstadoAsignacion = "Activa" | "Finalizada";
-export type TipoMovimiento = "Entrada" | "Salida" | "Asignacion" | "Devolucion" | "Reparacion" | "Baja";
+export type TipoMovimiento =
+  "Entrada" | "Salida" | "Asignacion" | "Devolucion" | "Reparacion" | "Baja";
 
-export type RoleKey = "super_admin" | "coordinador" | "agente_soporte";
+export type RoleKey = "super_admin" | "coordinador" | "agente_soporte" | "auditor" | "usuario";
 
 export interface Role {
   idRol: number;
@@ -20,6 +21,8 @@ export interface Usuario {
   nombreRol?: string;
   idSede: number;
   nombreSede?: string;
+  idArea?: number | null;
+  nombreArea?: string | null;
   nombre: string;
   correo: string;
   telefono: string;
@@ -36,10 +39,19 @@ export interface Sede {
   estado: EstadoGenerico;
 }
 
+export interface Area {
+  idArea: number;
+  nombreArea: string;
+  estado: boolean;
+  fechaCreacion: string;
+  fechaModificacion?: string | null;
+  creadoPor?: number;
+  modificadoPor?: number;
+}
+
 export interface Parqueadero {
   idParqueadero: number;
-  idSede: number;
-  nombreSede?: string;
+  da: string;
   nombre: string;
   ubicacion: string;
   estado: EstadoGenerico;
@@ -164,6 +176,7 @@ export interface AsignacionUsuario {
   fechaAsignacion: string;
   estadoAsignacion: EstadoAsignacion;
   fechaModificacion?: string | null;
+  motivoEdicion?: string | null;
 }
 
 export interface Movimiento {
@@ -182,6 +195,7 @@ export interface Movimiento {
   idAsignacion?: number;
   nombreUsuarioAsignado?: string;
   registroSalidaAsignacion?: string;
+  nombreCanal?: string;
   estadoAnterior?: string;
   estadoNuevo?: string;
   fechaCreacion: string;
@@ -203,4 +217,97 @@ export interface ApiResponse<T> {
   exito: boolean;
   data: T;
   mensaje: string | null;
+}
+
+export interface FileUploadResponse {
+  relativePath: string;
+  url: string;
+}
+
+export interface EmailRequest {
+  to: string;
+  subject: string;
+  body: string;
+  isHtml?: boolean;
+}
+
+export type EstadoActa = "Pendiente" | "Enviada" | "Firmada" | "Vencida";
+
+export interface ActaActivo {
+  idActivo: number;
+  codigoActivo: string | null;
+  serial: string | null;
+  marca: string | null;
+  modelo: string | null;
+  nombreCategoria: string | null;
+}
+
+export interface ActaFirma {
+  idActa: number;
+  rutaPdf: string | null;
+  urlPdf: string | null;
+  token: string;
+  estado: EstadoActa;
+  fechaGeneracion: string;
+  fechaEnvio: string | null;
+  fechaFirma: string | null;
+  fechaVencimiento: string;
+  nombreFirmante: string | null;
+  documentoFirmante: string | null;
+  ipFirma: string | null;
+  tipoDestino: string;
+  idDestino: number;
+  nombreDestino: string | null;
+  activos: ActaActivo[];
+}
+
+export interface ActaFirmaPublic {
+  idActa: number;
+  token: string;
+  estado: EstadoActa;
+  yaFirmada: boolean;
+  fechaFirma: string | null;
+  nombreFirmante: string | null;
+  tipoDestino: string;
+  idDestino: number;
+  nombreDestino: string | null;
+  nombreUsuarioEntrega: string | null;
+  fechaAsignacion: string;
+  registroSalida: string;
+  activos: ActaActivo[];
+}
+
+export interface FirmaRequest {
+  nombre: string;
+  documento: string;
+}
+
+export interface FiltrosInventario {
+  categoria?: string[];
+  estado?: string[];
+  sede?: string[];
+  area?: string[];
+  responsableId?: number[];
+  fechaAdquisicionDesde?: string | null;
+  fechaAdquisicionHasta?: string | null;
+  proveedor?: string | null;
+  numeroOC?: string | null;
+}
+
+export interface ReporteInventarioRequest {
+  columnas: string[];
+  filtros?: FiltrosInventario | null;
+  agrupadoPor?: string | null;
+  ordenadoPor?: string | null;
+  ordenDescendente?: boolean;
+  paginaPreview?: number;
+  tamPaginaPreview?: number;
+}
+
+export interface ReportePreviewResponse {
+  columnas: string[];
+  filas: Record<string, string | number | null>[];
+  totalRegistros: number;
+  paginaActual: number;
+  totalPaginas: number;
 }
