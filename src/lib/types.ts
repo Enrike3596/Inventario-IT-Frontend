@@ -90,6 +90,8 @@ export interface Remision {
   numeroRemision: string;
   proveedor: string;
   fechaCompra: string;
+  rutaDocumento?: string | null;
+  nombreDocumento?: string | null;
   itemsRemision?: ItemRemision[];
 }
 
@@ -98,7 +100,14 @@ export interface RemisionDetail {
   numeroRemision: string;
   proveedor: string;
   fechaCompra: string;
+  rutaDocumento?: string | null;
+  nombreDocumento?: string | null;
   itemsRemision: ItemRemision[];
+}
+
+export interface DocumentoRemision {
+  rutaDocumento: string;
+  nombreDocumento: string;
 }
 
 export interface Activo {

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Plus,
@@ -12,6 +12,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  Download,
+  FileText,
+  FileUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
@@ -63,11 +66,137 @@ import {
   useUpdateRemision,
   useDeleteRemision,
   useConfirmarIngreso,
+  useSubirDocumentoRemision,
+  useLimpiarDocumentoRemision,
+  useReemplazarDocumentoRemision,
+  useEliminarDocumentoRemision,
   useCategorias,
   keys,
 } from "@/lib/queries";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiDownload } from "@/lib/api";
+import { buildDocumentoRemisionUrl } from "@/lib/file-storage";
 import type { Remision, RemisionDetail } from "@/lib/types";
+
+function SeccionDocumento({
+  existe,
+  nombreDocumento,
+  subiendo,
+  puedeEditar,
+  esCreacion,
+  onUpload,
+  onDelete,
+  onView,
+  onDownload,
+}: {
+  existe: boolean;
+  nombreDocumento?: string | null;
+  subiendo: boolean;
+  puedeEditar: boolean;
+  esCreacion?: boolean;
+  onUpload: (file: File) => void;
+  onDelete: () => void;
+  onView?: () => void;
+  onDownload?: () => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="border rounded-lg p-4 space-y-3">
+      <h4 className="text-sm font-semibold">
+        Documento de la remisión (PDF) <span className="text-destructive">*</span>
+      </h4>
+
+      {!existe ? (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Adjunta el PDF de la remisión. Solo archivos .pdf de máximo 10 MB.
+          </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onUpload(f);
+              e.target.value = "";
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={subiendo}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {subiendo ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+            ) : (
+              <FileUp className="h-3.5 w-3.5 mr-1" />
+            )}
+            {subiendo ? "Subiendo..." : "Subir documento"}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          <span className="inline-flex items-center gap-1.5 text-xs text-success min-w-0">
+            <FileText className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate max-w-[220px]">{nombreDocumento || "Documento.pdf"}</span>
+          </span>
+          <div className="flex items-center flex-wrap gap-1">
+            {onView && (
+              <Button type="button" size="sm" variant="outline" onClick={onView}>
+                <Eye className="h-3.5 w-3.5 mr-1" /> Ver
+              </Button>
+            )}
+            {onDownload && (
+              <Button type="button" size="sm" variant="outline" onClick={onDownload}>
+                <Download className="h-3.5 w-3.5 mr-1" /> Descargar
+              </Button>
+            )}
+            {puedeEditar && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) onUpload(f);
+                    e.target.value = "";
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={subiendo}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {subiendo ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  ) : (
+                    <FileUp className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  {subiendo ? "Subiendo..." : esCreacion ? "Cambiar" : "Reemplazar"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive"
+                  onClick={onDelete}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Quitar
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/remisiones")({
   head: () => ({ meta: [{ title: "Remisiones — Indigo" }] }),
@@ -82,6 +211,10 @@ function Page() {
   const updateMutation = useUpdateRemision();
   const deleteMutation = useDeleteRemision();
   const confirmarMutation = useConfirmarIngreso();
+  const subirDocumentoMutation = useSubirDocumentoRemision();
+  const limpiarDocumentoMutation = useLimpiarDocumentoRemision();
+  const reemplazarDocumentoMutation = useReemplazarDocumentoRemision();
+  const eliminarDocumentoMutation = useEliminarDocumentoRemision();
 
   const qc = useQueryClient();
   const canCreate = can("create", "remisiones");
@@ -95,8 +228,11 @@ function Page() {
     numeroRemision: "",
     proveedor: "",
     motivoEdicion: "",
+    rutaDocumento: "",
+    nombreDocumento: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [documentoSubiendo, setDocumentoSubiendo] = useState(false);
   const [editReasonOpen, setEditReasonOpen] = useState(false);
   const [editReason, setEditReason] = useState("");
   const [pendingEditRem, setPendingEditRem] = useState<Remision | null>(null);
@@ -154,7 +290,13 @@ function Page() {
   const [editedSerials, setEditedSerials] = useState<Record<number, string>>({});
 
   const openCreateRem = () => {
-    setRemForm({ numeroRemision: "", proveedor: "", motivoEdicion: "" });
+    setRemForm({
+      numeroRemision: "",
+      proveedor: "",
+      motivoEdicion: "",
+      rutaDocumento: "",
+      nombreDocumento: "",
+    });
     setCreateItems([]);
     setCreateItemForm({ idCategoria: "", marca: "", modelo: "", cantidadEsperada: 1 });
     setEditingItemIndex(null);
@@ -217,6 +359,8 @@ function Page() {
       numeroRemision: rem.numeroRemision,
       proveedor: rem.proveedor,
       motivoEdicion: "",
+      rutaDocumento: rem.rutaDocumento ?? "",
+      nombreDocumento: rem.nombreDocumento ?? "",
     });
     setEditingRem(rem);
     const items = ((rem as any).itemsRemision ?? []).map((i: any) => ({
@@ -238,6 +382,8 @@ function Page() {
       numeroRemision: rem.numeroRemision,
       proveedor: rem.proveedor,
       motivoEdicion: editReason,
+      rutaDocumento: rem.rutaDocumento ?? "",
+      nombreDocumento: rem.nombreDocumento ?? "",
     });
     setEditingRem(rem);
     const items = ((rem as any).itemsRemision ?? []).map((i: any) => ({
@@ -258,6 +404,10 @@ function Page() {
     e.preventDefault();
     if (!remForm.numeroRemision || !remForm.proveedor) {
       toast.error("N° remisión y Proveedor son obligatorios");
+      return;
+    }
+    if (!remForm.rutaDocumento) {
+      toast.error("El documento PDF de la remisión es obligatorio");
       return;
     }
     setSubmitting(true);
@@ -326,6 +476,131 @@ function Page() {
       toast.success(`Ingreso confirmado. ${result.length} activo(s) creado(s).`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
+    }
+  };
+
+  const esPdfValido = (file: File) => {
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("Solo se permiten archivos PDF");
+      return false;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("El archivo excede el tamaño máximo permitido (10 MB)");
+      return false;
+    }
+    return true;
+  };
+
+  const subirDocumento = async (file: File) => {
+    if (!esPdfValido(file)) return;
+    if (remForm.rutaDocumento && !editingRem) {
+      try {
+        await limpiarDocumentoMutation.mutateAsync(remForm.rutaDocumento);
+      } catch {
+        /* ignore */
+      }
+    }
+    setDocumentoSubiendo(true);
+    try {
+      if (editingRem) {
+        const res = await reemplazarDocumentoMutation.mutateAsync({
+          id: editingRem.idRemision,
+          file,
+        });
+        setRemForm((s) => ({
+          ...s,
+          rutaDocumento: res.rutaDocumento,
+          nombreDocumento: res.nombreDocumento,
+        }));
+        toast.success("Documento actualizado");
+      } else {
+        const res = await subirDocumentoMutation.mutateAsync(file);
+        setRemForm((s) => ({
+          ...s,
+          rutaDocumento: res.rutaDocumento,
+          nombreDocumento: res.nombreDocumento,
+        }));
+        toast.success("Documento subido");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al subir el documento");
+    } finally {
+      setDocumentoSubiendo(false);
+    }
+  };
+
+  const quitarDocumentoForm = async () => {
+    if (editingRem) {
+      if (!remForm.rutaDocumento) return;
+      setDocumentoSubiendo(true);
+      try {
+        await eliminarDocumentoMutation.mutateAsync(editingRem.idRemision);
+        setRemForm((s) => ({ ...s, rutaDocumento: "", nombreDocumento: "" }));
+        toast.success("Documento eliminado. Sube uno nuevo para guardar.");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Error al eliminar el documento");
+      } finally {
+        setDocumentoSubiendo(false);
+      }
+    } else if (remForm.rutaDocumento) {
+      try {
+        await limpiarDocumentoMutation.mutateAsync(remForm.rutaDocumento);
+      } catch {
+        /* ignore */
+      }
+      setRemForm((s) => ({ ...s, rutaDocumento: "", nombreDocumento: "" }));
+    }
+  };
+
+  const cerrarRemForm = async () => {
+    if (!editingRem && remForm.rutaDocumento) {
+      try {
+        await limpiarDocumentoMutation.mutateAsync(remForm.rutaDocumento);
+      } catch {
+        /* ignore */
+      }
+    }
+    setRemFormOpen(false);
+  };
+
+  const verDocumento = (id: number) => {
+    window.open(buildDocumentoRemisionUrl(id), "_blank", "noopener,noreferrer");
+  };
+
+  const descargarDocumento = async (id: number, nombre?: string | null) => {
+    try {
+      await apiDownload(
+        `/api/Remisiones/${id}/documento?descarga=1`,
+        {},
+        nombre || `remision-${id}.pdf`,
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al descargar el documento");
+    }
+  };
+
+  const subirDocumentoDetalle = async (id: number, file: File) => {
+    if (!esPdfValido(file)) return;
+    setDocumentoSubiendo(true);
+    try {
+      await reemplazarDocumentoMutation.mutateAsync({ id, file });
+      toast.success("Documento subido");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al subir el documento");
+    } finally {
+      setDocumentoSubiendo(false);
+    }
+  };
+
+  const eliminarDocumentoDetalle = async (id: number) => {
+    setDocumentoSubiendo(true);
+    try {
+      await eliminarDocumentoMutation.mutateAsync(id);
+      toast.success("Documento eliminado");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al eliminar el documento");
+    } finally {
+      setDocumentoSubiendo(false);
     }
   };
 
@@ -600,20 +875,21 @@ function Page() {
                   <TableHead>Proveedor</TableHead>
                   <TableHead>Fecha</TableHead>
                   <TableHead>Items</TableHead>
+                  <TableHead>Documento</TableHead>
                   <TableHead className="w-56 text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-10">
+                    <TableCell colSpan={6} className="text-center py-10">
                       <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ) : !remList.length ? (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={6}
                       className="text-center text-sm text-muted-foreground py-10"
                     >
                       Sin registros
@@ -647,6 +923,23 @@ function Page() {
                               className="ml-2 bg-warning/15 text-warning text-xs"
                             >
                               {pendientes(rem)} pend.
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {rem.rutaDocumento ? (
+                            <Badge
+                              variant="outline"
+                              className="bg-success/10 text-success text-xs whitespace-nowrap"
+                            >
+                              <FileText className="h-3 w-3 mr-1" /> PDF
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="bg-muted text-muted-foreground text-xs whitespace-nowrap"
+                            >
+                              Sin doc.
                             </Badge>
                           )}
                         </TableCell>
@@ -748,6 +1041,28 @@ function Page() {
                         )}
                       </span>
                     </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs text-muted-foreground font-medium shrink-0 w-28 leading-5">
+                        Documento
+                      </span>
+                      <span className="text-sm text-right leading-5">
+                        {rem.rutaDocumento ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-success/10 text-success text-xs whitespace-nowrap"
+                          >
+                            <FileText className="h-3 w-3 mr-1" /> PDF
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="bg-muted text-muted-foreground text-xs whitespace-nowrap"
+                          >
+                            Sin doc.
+                          </Badge>
+                        )}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center justify-end gap-1 pt-3 mt-3 border-t">
                     <Button size="sm" variant="ghost" onClick={() => setDetailView(rem)}>
@@ -829,7 +1144,12 @@ function Page() {
       </main>
 
       {/* Remisión Create/Edit Dialog */}
-      <Dialog open={remFormOpen} onOpenChange={setRemFormOpen}>
+      <Dialog
+        open={remFormOpen}
+        onOpenChange={(o) => {
+          if (!o) cerrarRemForm();
+        }}
+      >
         <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingRem ? "Editar remisión" : "Nueva remisión"}</DialogTitle>
@@ -861,6 +1181,23 @@ function Page() {
                 />
               </div>
             </div>
+
+            {/* Documento de la remisión */}
+            <SeccionDocumento
+              existe={!!remForm.rutaDocumento}
+              nombreDocumento={remForm.nombreDocumento}
+              subiendo={documentoSubiendo}
+              puedeEditar
+              esCreacion={!editingRem}
+              onUpload={subirDocumento}
+              onDelete={quitarDocumentoForm}
+              onView={editingRem ? () => verDocumento(editingRem.idRemision) : undefined}
+              onDownload={
+                editingRem
+                  ? () => descargarDocumento(editingRem.idRemision, remForm.nombreDocumento)
+                  : undefined
+              }
+            />
 
             {/* Items section */}
             <>
@@ -988,12 +1325,16 @@ function Page() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setRemFormOpen(false)}
-                disabled={submitting}
+                onClick={() => cerrarRemForm()}
+                disabled={submitting || documentoSubiendo}
               >
                 Cancelar
               </Button>
-              <Button type="submit" variant="brand" disabled={submitting}>
+              <Button
+                type="submit"
+                variant="brand"
+                disabled={submitting || documentoSubiendo || !remForm.rutaDocumento}
+              >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {editingRem ? "Guardar cambios" : "Crear remisión"}
               </Button>
@@ -1040,6 +1381,18 @@ function Page() {
                       <p>{new Date(data.fechaCompra).toLocaleDateString("es-CO")}</p>
                     </div>
                   </div>
+
+                  {/* Documento de la remisión */}
+                  <SeccionDocumento
+                    existe={!!data.rutaDocumento}
+                    nombreDocumento={data.nombreDocumento}
+                    subiendo={documentoSubiendo}
+                    puedeEditar={canEdit}
+                    onUpload={(f) => subirDocumentoDetalle(data.idRemision, f)}
+                    onDelete={() => eliminarDocumentoDetalle(data.idRemision)}
+                    onView={() => verDocumento(data.idRemision)}
+                    onDownload={() => descargarDocumento(data.idRemision, data.nombreDocumento)}
+                  />
 
                   <div>
                     <div className="flex flex-wrap gap-2 items-center mb-3">

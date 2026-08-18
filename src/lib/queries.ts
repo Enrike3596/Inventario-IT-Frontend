@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { apiFetch, apiFetchRaw, apiDownload } from "./api";
-import { uploadFile as uploadFileService } from "./file-storage";
+import {
+  uploadFile as uploadFileService,
+  subirDocumentoRemision,
+  eliminarDocumentoRemisionTemporal,
+  reemplazarDocumentoRemision,
+  eliminarDocumentoRemision,
+} from "./file-storage";
 import { sendEmail as sendEmailService } from "./email";
 import type {
   Role,
@@ -25,6 +31,7 @@ import type {
   Area,
   ReporteInventarioRequest,
   ReportePreviewResponse,
+  DocumentoRemision,
 } from "./types";
 
 // ---- Query key factories ----
@@ -193,6 +200,39 @@ export function useConfirmarIngreso() {
       qc.invalidateQueries({ queryKey: keys.remisiones.all as unknown as string[] });
       qc.invalidateQueries({ queryKey: keys.activos.all as unknown as string[] });
       qc.invalidateQueries({ queryKey: keys.itemsRemision.all as unknown as string[] });
+    },
+  });
+}
+
+// ---- Documento de remisión ----
+export function useSubirDocumentoRemision() {
+  return useMutation({
+    mutationFn: (file: File) => subirDocumentoRemision(file),
+  });
+}
+
+export function useLimpiarDocumentoRemision() {
+  return useMutation({
+    mutationFn: (path: string) => eliminarDocumentoRemisionTemporal(path),
+  });
+}
+
+export function useReemplazarDocumentoRemision() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, file }: { id: number; file: File }) => reemplazarDocumentoRemision(id, file),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.remisiones.all as unknown as string[] });
+    },
+  });
+}
+
+export function useEliminarDocumentoRemision() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => eliminarDocumentoRemision(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.remisiones.all as unknown as string[] });
     },
   });
 }

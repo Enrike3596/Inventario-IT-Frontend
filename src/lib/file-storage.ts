@@ -41,3 +41,41 @@ export function getAuthHeaders(): HeadersInit {
   const token = getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
+
+// ---- Documento de remisión ----
+
+export interface DocumentoRemisionUpload {
+  rutaDocumento: string;
+  nombreDocumento: string;
+}
+
+export async function subirDocumentoRemision(file: File): Promise<DocumentoRemisionUpload> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiUpload<DocumentoRemisionUpload>("/api/Remisiones/documento", formData);
+}
+
+export async function eliminarDocumentoRemisionTemporal(path: string): Promise<void> {
+  await apiFetch(`/api/Remisiones/documento?path=${encodeURIComponent(path)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function reemplazarDocumentoRemision(
+  id: number,
+  file: File,
+): Promise<DocumentoRemisionUpload> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiUpload<DocumentoRemisionUpload>(`/api/Remisiones/${id}/documento`, formData);
+}
+
+export async function eliminarDocumentoRemision(id: number): Promise<void> {
+  await apiFetch(`/api/Remisiones/${id}/documento`, { method: "DELETE" });
+}
+
+export function buildDocumentoRemisionUrl(id: number): string {
+  const token = getToken();
+  const base = `${API_URL}/api/Remisiones/${id}/documento`;
+  return token ? `${base}?access_token=${encodeURIComponent(token)}` : base;
+}
