@@ -20,7 +20,6 @@ import {
   useUpdateUsuario,
   useDeleteUsuario,
   useRoles,
-  useSedes,
   useAreas,
 } from "@/lib/queries";
 import type { Usuario } from "@/lib/types";
@@ -33,7 +32,6 @@ export const Route = createFileRoute("/_authenticated/usuarios")({
 function Page() {
   const { data: usuarios, isLoading } = useUsuarios();
   const { data: roles } = useRoles();
-  const { data: sedes } = useSedes();
   const { data: areas } = useAreas();
   const createMutation = useCreateUsuario();
   const updateMutation = useUpdateUsuario();
@@ -169,28 +167,6 @@ function Page() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="idSede">
-              Sede <span className="text-destructive">*</span>
-            </Label>
-            <Select
-              value={
-                form.idSede !== undefined && form.idSede !== "" ? String(form.idSede) : undefined
-              }
-              onValueChange={(v) => setForm((s) => ({ ...s, idSede: Number(v) }))}
-            >
-              <SelectTrigger id="idSede">
-                <SelectValue placeholder="Selecciona..." />
-              </SelectTrigger>
-              <SelectContent>
-                {(sedes ?? []).map((s) => (
-                  <SelectItem key={s.idSede} value={String(s.idSede)}>
-                    {s.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="idArea">Área</Label>
             <Select
               value={
@@ -318,10 +294,6 @@ function Page() {
           render: (u) => u.nombreRol ?? "—",
         },
         {
-          header: "Sede",
-          render: (u) => u.nombreSede ?? "—",
-        },
-        {
           header: "Area",
           render: (u) => u.nombreArea ?? "—",
         },
@@ -352,13 +324,6 @@ function Page() {
           type: "select",
           required: true,
           options: (roles ?? []).map((r) => ({ value: r.idRol, label: r.nombre })),
-        },
-        {
-          key: "idSede",
-          label: "Sede",
-          type: "select",
-          required: true,
-          options: (sedes ?? []).map((s) => ({ value: s.idSede, label: s.nombre })),
         },
         {
           key: "idArea",

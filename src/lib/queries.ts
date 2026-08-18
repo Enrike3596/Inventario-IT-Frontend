@@ -10,7 +10,6 @@ import {
 import { sendEmail as sendEmailService } from "./email";
 import type {
   Role,
-  Sede,
   Usuario,
   CategoriaActivo,
   Parqueadero,
@@ -38,7 +37,6 @@ import type {
 // ---- Query key factories ----
 export const keys = {
   roles: { all: ["roles"] as const },
-  sedes: { all: ["sedes"] as const },
   usuarios: { all: ["usuarios"] as string[] },
   categorias: { all: ["categorias"] as const },
   parqueaderos: { all: ["parqueaderos"] as const },
@@ -111,20 +109,6 @@ export function useUpdateRol() {
 }
 export function useDeleteRol() {
   return useDelete(keys.roles.all, "/api/Roles");
-}
-
-// ---- Sedes ----
-export function useSedes() {
-  return useList<Sede>(keys.sedes.all, "/api/Sedes");
-}
-export function useCreateSede() {
-  return useCreate<Sede>(keys.sedes.all, "/api/Sedes");
-}
-export function useUpdateSede() {
-  return useUpdate<Sede>(keys.sedes.all, "/api/Sedes");
-}
-export function useDeleteSede() {
-  return useDelete(keys.sedes.all, "/api/Sedes");
 }
 
 // ---- Usuarios ----
@@ -605,7 +589,6 @@ export const REPORTE_COLUMNAS: { key: string; label: string }[] = [
   { key: "fechaCompra", label: "Fecha compra" },
   { key: "responsable", label: "Responsable" },
   { key: "area", label: "Área" },
-  { key: "sede", label: "Sede" },
   { key: "observaciones", label: "Observaciones" },
 ];
 

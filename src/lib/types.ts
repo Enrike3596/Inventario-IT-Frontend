@@ -19,8 +19,6 @@ export interface Usuario {
   idUsuario: number;
   idRol: number;
   nombreRol?: string;
-  idSede: number;
-  nombreSede?: string;
   idArea?: number | null;
   nombreArea?: string | null;
   nombre: string;
@@ -29,14 +27,6 @@ export interface Usuario {
   cargo: string;
   estadoUsuario: EstadoGenerico;
   fechaCreacion: string;
-}
-
-export interface Sede {
-  idSede: number;
-  nombre: string;
-  direccion: string;
-  ciudad: string;
-  estado: EstadoGenerico;
 }
 
 export interface Area {
@@ -220,7 +210,6 @@ export interface AuthUser {
   nombre: string;
   correo: string;
   role: RoleKey;
-  idSede: number;
   idRol: number;
 }
 
@@ -296,7 +285,6 @@ export interface FirmaRequest {
 export interface FiltrosInventario {
   categoria?: string[];
   estado?: string[];
-  sede?: string[];
   area?: string[];
   responsableId?: number[];
   fechaAdquisicionDesde?: string | null;

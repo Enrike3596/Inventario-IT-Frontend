@@ -16,7 +16,6 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FirmarTokenRouteImport } from './routes/firmar.$token'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated.usuarios'
-import { Route as AuthenticatedSedesRouteImport } from './routes/_authenticated.sedes'
 import { Route as AuthenticatedSalidasRouteImport } from './routes/_authenticated.salidas'
 import { Route as AuthenticatedRolesRouteImport } from './routes/_authenticated.roles'
 import { Route as AuthenticatedRemisionesRouteImport } from './routes/_authenticated.remisiones'
@@ -62,11 +61,6 @@ const FirmarTokenRoute = FirmarTokenRouteImport.update({
 const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedSedesRoute = AuthenticatedSedesRouteImport.update({
-  id: '/sedes',
-  path: '/sedes',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedSalidasRoute = AuthenticatedSalidasRouteImport.update({
@@ -150,7 +144,6 @@ export interface FileRoutesByFullPath {
   '/remisiones': typeof AuthenticatedRemisionesRoute
   '/roles': typeof AuthenticatedRolesRoute
   '/salidas': typeof AuthenticatedSalidasRoute
-  '/sedes': typeof AuthenticatedSedesRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/firmar/$token': typeof FirmarTokenRoute
 }
@@ -171,7 +164,6 @@ export interface FileRoutesByTo {
   '/remisiones': typeof AuthenticatedRemisionesRoute
   '/roles': typeof AuthenticatedRolesRoute
   '/salidas': typeof AuthenticatedSalidasRoute
-  '/sedes': typeof AuthenticatedSedesRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/firmar/$token': typeof FirmarTokenRoute
 }
@@ -194,7 +186,6 @@ export interface FileRoutesById {
   '/_authenticated/remisiones': typeof AuthenticatedRemisionesRoute
   '/_authenticated/roles': typeof AuthenticatedRolesRoute
   '/_authenticated/salidas': typeof AuthenticatedSalidasRoute
-  '/_authenticated/sedes': typeof AuthenticatedSedesRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/firmar/$token': typeof FirmarTokenRoute
 }
@@ -217,7 +208,6 @@ export interface FileRouteTypes {
     | '/remisiones'
     | '/roles'
     | '/salidas'
-    | '/sedes'
     | '/usuarios'
     | '/firmar/$token'
   fileRoutesByTo: FileRoutesByTo
@@ -238,7 +228,6 @@ export interface FileRouteTypes {
     | '/remisiones'
     | '/roles'
     | '/salidas'
-    | '/sedes'
     | '/usuarios'
     | '/firmar/$token'
   id:
@@ -260,7 +249,6 @@ export interface FileRouteTypes {
     | '/_authenticated/remisiones'
     | '/_authenticated/roles'
     | '/_authenticated/salidas'
-    | '/_authenticated/sedes'
     | '/_authenticated/usuarios'
     | '/firmar/$token'
   fileRoutesById: FileRoutesById
@@ -323,13 +311,6 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/usuarios'
       preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/sedes': {
-      id: '/_authenticated/sedes'
-      path: '/sedes'
-      fullPath: '/sedes'
-      preLoaderRoute: typeof AuthenticatedSedesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/salidas': {
@@ -432,7 +413,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedRemisionesRoute: typeof AuthenticatedRemisionesRoute
   AuthenticatedRolesRoute: typeof AuthenticatedRolesRoute
   AuthenticatedSalidasRoute: typeof AuthenticatedSalidasRoute
-  AuthenticatedSedesRoute: typeof AuthenticatedSedesRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
 }
 
@@ -449,7 +429,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedRemisionesRoute: AuthenticatedRemisionesRoute,
   AuthenticatedRolesRoute: AuthenticatedRolesRoute,
   AuthenticatedSalidasRoute: AuthenticatedSalidasRoute,
-  AuthenticatedSedesRoute: AuthenticatedSedesRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
 }
 

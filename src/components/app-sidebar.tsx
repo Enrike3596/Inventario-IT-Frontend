@@ -1,7 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Boxes,
-  Building2,
   ClipboardList,
   Cpu,
   FileBarChart,
@@ -59,7 +58,6 @@ const operacion: Item[] = [
 ];
 
 const organizacion: Item[] = [
-  { title: "Sedes", url: "/sedes", icon: Building2 },
   { title: "Areas", url: "/areas", icon: MapPin, roles: ["super_admin", "coordinador"] },
   { title: "Parqueaderos", url: "/parqueaderos", icon: ParkingSquare },
   { title: "Usuarios", url: "/usuarios", icon: Users },

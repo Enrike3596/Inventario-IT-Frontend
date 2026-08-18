@@ -58,7 +58,6 @@ import {
   useCategorias,
   useExportarReporte,
   useReportePreview,
-  useSedes,
   useUsuarios,
 } from "@/lib/queries";
 import type { FiltrosInventario, ReporteInventarioRequest } from "@/lib/types";
@@ -109,7 +108,6 @@ const PAGE_SIZES = [10, 25, 50, 100] as const;
 const FILTROS_INICIALES: FiltrosInventario = {
   categoria: [],
   estado: [],
-  sede: [],
   area: [],
   responsableId: [],
 };
@@ -245,7 +243,6 @@ function EstadoFilterGroup({
 
 function InformesPage() {
   const { data: categorias } = useCategorias();
-  const { data: sedes } = useSedes();
   const { data: areas } = useAreas();
   const { data: usuarios } = useUsuarios();
   const { data: activos } = useActivos();
@@ -295,7 +292,6 @@ function InformesPage() {
     filtros: {
       categoria: filtros.categoria?.length ? filtros.categoria : undefined,
       estado: filtros.estado?.length ? filtros.estado : undefined,
-      sede: filtros.sede?.length ? filtros.sede : undefined,
       area: filtros.area?.length ? filtros.area : undefined,
       responsableId: filtros.responsableId?.length ? filtros.responsableId : undefined,
       fechaAdquisicionDesde: filtros.fechaAdquisicionDesde || null,
@@ -358,7 +354,6 @@ function InformesPage() {
     let n = 0;
     if (filtros.categoria?.length) n++;
     if (filtros.estado?.length) n++;
-    if (filtros.sede?.length) n++;
     if (filtros.area?.length) n++;
     if (filtros.responsableId?.length) n++;
     if (filtros.fechaAdquisicionDesde || filtros.fechaAdquisicionHasta) n++;
@@ -569,13 +564,6 @@ function InformesPage() {
                     selected={filtros.estado ?? []}
                     onToggle={(v) => toggleIn("estado", v)}
                     counts={estadoCounts}
-                  />
-
-                  <MultiCheckboxGroup
-                    label="Sedes"
-                    options={(sedes ?? []).map((s) => ({ value: s.nombre, label: s.nombre }))}
-                    selected={filtros.sede ?? []}
-                    onToggle={(v) => toggleIn("sede", v)}
                   />
 
                   <MultiCheckboxGroup

@@ -33,8 +33,6 @@ interface LoginResponse {
     idUsuario: number;
     idRol: number;
     nombreRol?: string;
-    idSede: number;
-    nombreSede?: string;
     nombre: string;
     correo: string;
     telefono: string;
@@ -75,7 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             nombre: data.nombre,
             correo: data.correo,
             role: mapRole(data.nombreRol),
-            idSede: data.idSede,
             idRol: data.idRol,
           };
           persist(authUser);
@@ -110,7 +107,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       nombre: res.usuario.nombre,
       correo: res.usuario.correo,
       role: mapRole(res.usuario.nombreRol),
-      idSede: res.usuario.idSede,
       idRol: res.usuario.idRol,
     };
     persist(authUser);
