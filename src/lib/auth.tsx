@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (
         action === "create" &&
         module &&
-        ["asignaciones", "salidas", "ordenes-compra"].includes(module)
+        ["asignaciones", "salidas", "remisiones"].includes(module)
       )
         return true;
       return false;

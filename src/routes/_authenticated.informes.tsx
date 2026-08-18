@@ -301,7 +301,7 @@ function InformesPage() {
       fechaAdquisicionDesde: filtros.fechaAdquisicionDesde || null,
       fechaAdquisicionHasta: filtros.fechaAdquisicionHasta || null,
       proveedor: filtros.proveedor?.trim() ? filtros.proveedor.trim() : null,
-      numeroOC: filtros.numeroOC?.trim() ? filtros.numeroOC.trim() : null,
+      numeroRemision: filtros.numeroRemision?.trim() ? filtros.numeroRemision.trim() : null,
     },
     agrupadoPor: agrupadoPor && agrupadoPor !== "__none" ? agrupadoPor : null,
     ordenadoPor: ordenadoPor && ordenadoPor !== "__none" ? ordenadoPor : null,
@@ -363,7 +363,7 @@ function InformesPage() {
     if (filtros.responsableId?.length) n++;
     if (filtros.fechaAdquisicionDesde || filtros.fechaAdquisicionHasta) n++;
     if (filtros.proveedor?.trim()) n++;
-    if (filtros.numeroOC?.trim()) n++;
+    if (filtros.numeroRemision?.trim()) n++;
     return n;
   }, [filtros]);
 
@@ -660,17 +660,17 @@ function InformesPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="numeroOC" className="text-xs text-muted-foreground font-medium">
-                      N° orden de compra
+                    <Label htmlFor="numeroRemision" className="text-xs text-muted-foreground font-medium">
+                      N° remisión
                     </Label>
                     <Input
-                      id="numeroOC"
+                      id="numeroRemision"
                       className="h-8 text-sm"
-                      value={filtros.numeroOC ?? ""}
+                      value={filtros.numeroRemision ?? ""}
                       onChange={(e) =>
-                        setFiltros((prev) => ({ ...prev, numeroOC: e.target.value }))
+                        setFiltros((prev) => ({ ...prev, numeroRemision: e.target.value }))
                       }
-                      placeholder="Ej: OC-2024-001"
+                      placeholder="Ej: REM-2024-001"
                     />
                   </div>
                 </section>

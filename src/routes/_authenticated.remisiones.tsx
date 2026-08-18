@@ -9,7 +9,6 @@ import {
   Loader2,
   Eye,
   X,
-  Info,
   ChevronLeft,
   ChevronRight,
   Search,
@@ -55,153 +54,124 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useOrdenesCompra,
-  useOrdenCompraDetail,
-  useCreateOrdenCompra,
-  useUpdateOrdenCompra,
-  useDeleteOrdenCompra,
+  useRemisiones,
+  useRemisionDetail,
+  useCreateRemision,
+  useUpdateRemision,
+  useDeleteRemision,
   useConfirmarIngreso,
   useCategorias,
   keys,
 } from "@/lib/queries";
 import { apiFetch } from "@/lib/api";
-import type { OrdenCompra, OrdenCompraDetail } from "@/lib/types";
+import type { Remision, RemisionDetail } from "@/lib/types";
 
-export const Route = createFileRoute("/_authenticated/ordenes-compra")({
-  head: () => ({ meta: [{ title: "Órdenes de Compra — Indigo" }] }),
+export const Route = createFileRoute("/_authenticated/remisiones")({
+  head: () => ({ meta: [{ title: "Remisiones — Indigo" }] }),
   component: Page,
-});
-
-const money = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "COP",
-  maximumFractionDigits: 0,
 });
 
 function Page() {
   const { can, user } = useAuth();
-  const { data: ordenes, isLoading } = useOrdenesCompra();
+  const { data: remisiones, isLoading } = useRemisiones();
   const { data: categorias } = useCategorias();
-  const createMutation = useCreateOrdenCompra();
-  const updateMutation = useUpdateOrdenCompra();
-  const deleteMutation = useDeleteOrdenCompra();
+  const createMutation = useCreateRemision();
+  const updateMutation = useUpdateRemision();
+  const deleteMutation = useDeleteRemision();
   const confirmarMutation = useConfirmarIngreso();
 
   const qc = useQueryClient();
-  const canCreate = can("create", "ordenes-compra");
-  const canEdit = can("edit", "ordenes-compra");
-  const canDelete = can("delete", "ordenes-compra");
+  const canCreate = can("create", "remisiones");
+  const canEdit = can("edit", "remisiones");
+  const canDelete = can("delete", "remisiones");
 
-  // OC form state
-  const [ocFormOpen, setOcFormOpen] = useState(false);
-  const [editingOC, setEditingOC] = useState<OrdenCompra | null>(null);
-  const [ocForm, setOcForm] = useState({
-    numeroOC: "",
+  // Remisión form state
+  const [remFormOpen, setRemFormOpen] = useState(false);
+  const [editingRem, setEditingRem] = useState<Remision | null>(null);
+  const [remForm, setRemForm] = useState({
+    numeroRemision: "",
     proveedor: "",
-    total: 0,
-    observaciones: "",
     motivoEdicion: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [editReasonOpen, setEditReasonOpen] = useState(false);
   const [editReason, setEditReason] = useState("");
-  const [pendingEditOC, setPendingEditOC] = useState<OrdenCompra | null>(null);
+  const [pendingEditRem, setPendingEditRem] = useState<Remision | null>(null);
 
-  // Items to create with new OC
+  // Items to create with new remisión
   const [createItems, setCreateItems] = useState<
     Array<{
-      idItemOC?: number;
+      idItemRemision?: number;
       idCategoria: number;
-      nombreProducto: string;
       marca: string;
       modelo: string;
-      referencia: string | null;
-      observaciones: string | null;
       cantidadEsperada: number;
     }>
   >([]);
   const [createItemForm, setCreateItemForm] = useState({
     idCategoria: "",
-    nombreProducto: "",
     marca: "",
     modelo: "",
-    referencia: "",
-    observaciones: "",
     cantidadEsperada: 1,
   });
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
 
   // Delete confirmation
-  const [toDelete, setToDelete] = useState<OrdenCompra | null>(null);
+  const [toDelete, setToDelete] = useState<Remision | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   // Detail view
-  const [detailView, setDetailView] = useState<OrdenCompra | null>(null);
-  const detailId = detailView?.idOrden;
-  const { data: detailData } = useOrdenCompraDetail(detailId ?? 0);
+  const [detailView, setDetailView] = useState<Remision | null>(null);
+  const detailId = detailView?.idRemision;
+  const { data: detailData } = useRemisionDetail(detailId ?? 0);
 
-  // ItemOC form
+  // ItemRemision form
   const [itemFormOpen, setItemFormOpen] = useState(false);
-  const [itemForOrden, setItemForOrden] = useState<number | null>(null);
+  const [itemForRemision, setItemForRemision] = useState<number | null>(null);
   const [itemForm, setItemForm] = useState({
     idCategoria: "",
-    nombreProducto: "",
     marca: "",
     modelo: "",
-    referencia: "",
-    observaciones: "",
     cantidadEsperada: 1,
   });
 
   // Serial form
   const [serialFormOpen, setSerialFormOpen] = useState(false);
   const [serialForItem, setSerialForItem] = useState<{
-    idItemOC: number;
+    idItemRemision: number;
     nombre: string;
     maxSerials: number;
   } | null>(null);
   const [serialInput, setSerialInput] = useState("");
   const [serialBatch, setSerialBatch] = useState<string[]>([]);
   const [existingSerials, setExistingSerials] = useState<
-    { idDetalleItemOC: number; serial: string }[]
+    { idDetalleItemRemision: number; serial: string }[]
   >([]);
   const [removedSerialIds, setRemovedSerialIds] = useState<number[]>([]);
   const [editedSerials, setEditedSerials] = useState<Record<number, string>>({});
 
-  const openCreateOC = () => {
-    setOcForm({ numeroOC: "", proveedor: "", total: 0, observaciones: "", motivoEdicion: "" });
+  const openCreateRem = () => {
+    setRemForm({ numeroRemision: "", proveedor: "", motivoEdicion: "" });
     setCreateItems([]);
-    setCreateItemForm({
-      idCategoria: "",
-      nombreProducto: "",
-      marca: "",
-      modelo: "",
-      referencia: "",
-      observaciones: "",
-      cantidadEsperada: 1,
-    });
+    setCreateItemForm({ idCategoria: "", marca: "", modelo: "", cantidadEsperada: 1 });
     setEditingItemIndex(null);
-    setEditingOC(null);
-    setOcFormOpen(true);
+    setEditingRem(null);
+    setRemFormOpen(true);
   };
 
   const addItemToCreateList = () => {
     const f = createItemForm;
-    if (!f.idCategoria || !f.nombreProducto || !f.marca || !f.modelo) {
-      toast.error("Categoría, producto, marca y modelo son obligatorios");
+    if (!f.idCategoria || !f.marca || !f.modelo) {
+      toast.error("Categoría, marca y modelo son obligatorios");
       return;
     }
     const newItem = {
       idCategoria: Number(f.idCategoria),
-      nombreProducto: f.nombreProducto,
       marca: f.marca,
       modelo: f.modelo,
-      referencia: f.referencia || null,
-      observaciones: f.observaciones || null,
       cantidadEsperada: f.cantidadEsperada,
     };
     if (editingItemIndex !== null) {
@@ -214,26 +184,15 @@ function Page() {
       setCreateItems((prev) => [...prev, newItem]);
       toast.success("Ítem agregado");
     }
-    setCreateItemForm({
-      idCategoria: "",
-      nombreProducto: "",
-      marca: "",
-      modelo: "",
-      referencia: "",
-      observaciones: "",
-      cantidadEsperada: 1,
-    });
+    setCreateItemForm({ idCategoria: "", marca: "", modelo: "", cantidadEsperada: 1 });
   };
 
   const loadItemToForm = (idx: number) => {
     const item = createItems[idx];
     setCreateItemForm({
       idCategoria: String(item.idCategoria),
-      nombreProducto: item.nombreProducto,
       marca: item.marca,
       modelo: item.modelo,
-      referencia: item.referencia ?? "",
-      observaciones: item.observaciones ?? "",
       cantidadEsperada: item.cantidadEsperada,
     });
     setEditingItemIndex(idx);
@@ -243,119 +202,103 @@ function Page() {
     setCreateItems((prev) => prev.filter((_, i) => i !== idx));
     if (editingItemIndex === idx) {
       setEditingItemIndex(null);
-      setCreateItemForm({
-        idCategoria: "",
-        nombreProducto: "",
-        marca: "",
-        modelo: "",
-        referencia: "",
-        observaciones: "",
-        cantidadEsperada: 1,
-      });
+      setCreateItemForm({ idCategoria: "", marca: "", modelo: "", cantidadEsperada: 1 });
     }
   };
 
-  const openEditOC = (oc: OrdenCompra) => {
+  const openEditRem = (rem: Remision) => {
     if (user?.role === "coordinador") {
       setEditReason("");
-      setPendingEditOC(oc);
+      setPendingEditRem(rem);
       setEditReasonOpen(true);
       return;
     }
-    setOcForm({
-      numeroOC: oc.numeroOC,
-      proveedor: oc.proveedor,
-      total: oc.total,
-      observaciones: oc.observaciones,
+    setRemForm({
+      numeroRemision: rem.numeroRemision,
+      proveedor: rem.proveedor,
       motivoEdicion: "",
     });
-    setEditingOC(oc);
-    const items = ((oc as any).itemsOC ?? []).map((i: any) => ({
-      idItemOC: i.idItemOC,
+    setEditingRem(rem);
+    const items = ((rem as any).itemsRemision ?? []).map((i: any) => ({
+      idItemRemision: i.idItemRemision,
       idCategoria: i.idCategoria,
-      nombreProducto: i.nombreProducto,
       marca: i.marca,
       modelo: i.modelo,
-      referencia: i.referencia,
-      observaciones: i.observaciones,
       cantidadEsperada: i.cantidadEsperada,
     }));
     setCreateItems(items);
     setEditingItemIndex(null);
-    setOcFormOpen(true);
+    setRemFormOpen(true);
   };
 
-  const confirmOCEditReason = () => {
-    if (!pendingEditOC) return;
-    const oc = pendingEditOC;
-    setOcForm({
-      numeroOC: oc.numeroOC,
-      proveedor: oc.proveedor,
-      total: oc.total,
-      observaciones: oc.observaciones,
+  const confirmRemEditReason = () => {
+    if (!pendingEditRem) return;
+    const rem = pendingEditRem;
+    setRemForm({
+      numeroRemision: rem.numeroRemision,
+      proveedor: rem.proveedor,
       motivoEdicion: editReason,
     });
-    setEditingOC(oc);
-    const items = ((oc as any).itemsOC ?? []).map((i: any) => ({
-      idItemOC: i.idItemOC,
+    setEditingRem(rem);
+    const items = ((rem as any).itemsRemision ?? []).map((i: any) => ({
+      idItemRemision: i.idItemRemision,
       idCategoria: i.idCategoria,
-      nombreProducto: i.nombreProducto,
       marca: i.marca,
       modelo: i.modelo,
-      referencia: i.referencia,
-      observaciones: i.observaciones,
       cantidadEsperada: i.cantidadEsperada,
     }));
     setCreateItems(items);
     setEditingItemIndex(null);
     setEditReasonOpen(false);
-    setPendingEditOC(null);
-    setOcFormOpen(true);
+    setPendingEditRem(null);
+    setRemFormOpen(true);
   };
 
-  const submitOC = async (e: React.FormEvent) => {
+  const submitRem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ocForm.numeroOC || !ocForm.proveedor) {
-      toast.error("N° OC y Proveedor son obligatorios");
+    if (!remForm.numeroRemision || !remForm.proveedor) {
+      toast.error("N° remisión y Proveedor son obligatorios");
       return;
     }
     setSubmitting(true);
     try {
-      if (editingOC) {
-        await updateMutation.mutateAsync({ id: editingOC.idOrden, data: ocForm });
-        const originalItems = ((editingOC as any).itemsOC ?? []) as any[];
-        const originalIds = originalItems.map((i: any) => i.idItemOC);
-        const currentIds = createItems.filter((i) => i.idItemOC).map((i) => i.idItemOC!);
+      if (editingRem) {
+        await updateMutation.mutateAsync({ id: editingRem.idRemision, data: remForm });
+        const originalItems = ((editingRem as any).itemsRemision ?? []) as any[];
+        const originalIds = originalItems.map((i: any) => i.idItemRemision);
+        const currentIds = createItems
+          .filter((i) => i.idItemRemision)
+          .map((i) => i.idItemRemision!);
         const removedIds = originalIds.filter((id: number) => !currentIds.includes(id));
         for (const id of removedIds) {
-          await apiFetch(`/api/ItemsOC/${id}`, { method: "DELETE" });
+          await apiFetch(`/api/ItemsRemision/${id}`, { method: "DELETE" });
         }
         for (const item of createItems) {
-          if (item.idItemOC) {
-            await apiFetch(`/api/ItemsOC/${item.idItemOC}`, {
+          if (item.idItemRemision) {
+            await apiFetch(`/api/ItemsRemision/${item.idItemRemision}`, {
               method: "PUT",
               body: JSON.stringify(item),
             });
           } else {
-            await apiFetch("/api/ItemsOC", {
+            await apiFetch("/api/ItemsRemision", {
               method: "POST",
-              body: JSON.stringify({ idOrden: editingOC.idOrden, ...item }),
+              body: JSON.stringify({ idRemision: editingRem.idRemision, ...item }),
             });
           }
         }
-        toast.success("Orden actualizada");
+        toast.success("Remisión actualizada");
       } else {
-        const oc = (await createMutation.mutateAsync(ocForm)) as any;
+        const rem = (await createMutation.mutateAsync(remForm)) as any;
         for (const item of createItems) {
-          await apiFetch("/api/ItemsOC", {
+          await apiFetch("/api/ItemsRemision", {
             method: "POST",
-            body: JSON.stringify({ idOrden: oc.idOrden, ...item }),
+            body: JSON.stringify({ idRemision: rem.idRemision, ...item }),
           });
         }
-        toast.success("Orden creada");
+        toast.success("Remisión creada");
       }
-      qc.invalidateQueries({ queryKey: keys.ordenes.all });
-      setOcFormOpen(false);
+      qc.invalidateQueries({ queryKey: keys.remisiones.all });
+      setRemFormOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     } finally {
@@ -363,12 +306,12 @@ function Page() {
     }
   };
 
-  const deleteOC = async () => {
+  const deleteRem = async () => {
     if (!toDelete) return;
     setDeleting(true);
     try {
-      await deleteMutation.mutateAsync(toDelete.idOrden);
-      toast.success("Orden eliminada");
+      await deleteMutation.mutateAsync(toDelete.idRemision);
+      toast.success("Remisión eliminada");
       setToDelete(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
@@ -377,7 +320,7 @@ function Page() {
     }
   };
 
-  const confirmarOC = async (id: number) => {
+  const confirmarRem = async (id: number) => {
     try {
       const result = await confirmarMutation.mutateAsync(id);
       toast.success(`Ingreso confirmado. ${result.length} activo(s) creado(s).`);
@@ -386,48 +329,36 @@ function Page() {
     }
   };
 
-  const openAddItem = (idOrden: number) => {
-    setItemForOrden(idOrden);
-    setItemForm({
-      idCategoria: "",
-      nombreProducto: "",
-      marca: "",
-      modelo: "",
-      referencia: "",
-      observaciones: "",
-      cantidadEsperada: 1,
-    });
+  const openAddItem = (idRemision: number) => {
+    setItemForRemision(idRemision);
+    setItemForm({ idCategoria: "", marca: "", modelo: "", cantidadEsperada: 1 });
     setItemFormOpen(true);
   };
 
   const submitItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
-      !itemForOrden ||
+      !itemForRemision ||
       !itemForm.idCategoria ||
-      !itemForm.nombreProducto ||
       !itemForm.marca ||
       !itemForm.modelo
     ) {
-      toast.error("Categoría, producto, marca y modelo son obligatorios");
+      toast.error("Categoría, marca y modelo son obligatorios");
       return;
     }
     setSubmitting(true);
     try {
-      await apiFetch("/api/ItemsOC", {
+      await apiFetch("/api/ItemsRemision", {
         method: "POST",
         body: JSON.stringify({
-          idOrden: itemForOrden,
+          idRemision: itemForRemision,
           idCategoria: Number(itemForm.idCategoria),
-          nombreProducto: itemForm.nombreProducto,
           marca: itemForm.marca,
           modelo: itemForm.modelo,
-          referencia: itemForm.referencia || null,
-          observaciones: itemForm.observaciones || null,
           cantidadEsperada: itemForm.cantidadEsperada,
         }),
       });
-      toast.success("Ítem agregado a la orden");
+      toast.success("Ítem agregado a la remisión");
       setItemFormOpen(false);
       qc.invalidateQueries();
     } catch (err) {
@@ -437,8 +368,8 @@ function Page() {
     }
   };
 
-  const openAddSerials = (idItemOC: number, nombre: string, maxSerials: number) => {
-    setSerialForItem({ idItemOC, nombre, maxSerials });
+  const openAddSerials = (idItemRemision: number, nombre: string, maxSerials: number) => {
+    setSerialForItem({ idItemRemision, nombre, maxSerials });
     setSerialInput("");
     setSerialBatch([]);
     setExistingSerials([]);
@@ -448,14 +379,17 @@ function Page() {
   };
 
   const openEditSerials = (
-    idItemOC: number,
+    idItemRemision: number,
     nombre: string,
     maxSerials: number,
     detalles: any[],
   ) => {
-    setSerialForItem({ idItemOC, nombre, maxSerials });
+    setSerialForItem({ idItemRemision, nombre, maxSerials });
     setExistingSerials(
-      detalles.map((d: any) => ({ idDetalleItemOC: d.idDetalleItemOC, serial: d.serial })),
+      detalles.map((d: any) => ({
+        idDetalleItemRemision: d.idDetalleItemRemision,
+        serial: d.serial,
+      })),
     );
     setEditedSerials({});
     setRemovedSerialIds([]);
@@ -483,16 +417,16 @@ function Page() {
     setSerialBatch((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const removeExistingSerial = (idDetalleItemOC: number) => {
-    setRemovedSerialIds((prev) => [...prev, idDetalleItemOC]);
+  const removeExistingSerial = (idDetalleItemRemision: number) => {
+    setRemovedSerialIds((prev) => [...prev, idDetalleItemRemision]);
   };
 
-  const restoreExistingSerial = (idDetalleItemOC: number) => {
-    setRemovedSerialIds((prev) => prev.filter((id) => id !== idDetalleItemOC));
+  const restoreExistingSerial = (idDetalleItemRemision: number) => {
+    setRemovedSerialIds((prev) => prev.filter((id) => id !== idDetalleItemRemision));
   };
 
-  const updateExistingSerial = (idDetalleItemOC: number, value: string) => {
-    setEditedSerials((prev) => ({ ...prev, [idDetalleItemOC]: value }));
+  const updateExistingSerial = (idDetalleItemRemision: number, value: string) => {
+    setEditedSerials((prev) => ({ ...prev, [idDetalleItemRemision]: value }));
   };
 
   const submitSerials = async () => {
@@ -510,21 +444,21 @@ function Page() {
     let countUpdated = 0;
     try {
       if (hasNewSerials) {
-        await apiFetch("/api/DetallesItemOC/batch", {
+        await apiFetch("/api/DetallesItemRemision/batch", {
           method: "POST",
-          body: JSON.stringify({ idItemOC: serialForItem.idItemOC, seriales: serialBatch }),
+          body: JSON.stringify({ idItemRemision: serialForItem.idItemRemision, seriales: serialBatch }),
         });
         countAdded = serialBatch.length;
       }
       if (hasRemoved) {
         for (const id of removedSerialIds) {
-          await apiFetch(`/api/DetallesItemOC/${id}`, { method: "DELETE" });
+          await apiFetch(`/api/DetallesItemRemision/${id}`, { method: "DELETE" });
           countDeleted++;
         }
       }
       if (hasUpdates) {
         for (const [id, serial] of Object.entries(editedSerials)) {
-          await apiFetch(`/api/DetallesItemOC/${id}`, {
+          await apiFetch(`/api/DetallesItemRemision/${id}`, {
             method: "PUT",
             body: JSON.stringify({ serial }),
           });
@@ -537,9 +471,9 @@ function Page() {
       if (countDeleted > 0) parts.push(`${countDeleted} eliminado(s)`);
       toast.success(`Seriales guardados: ${parts.join(", ")}`);
       setSerialFormOpen(false);
-      qc.invalidateQueries({ queryKey: keys.ordenes.all });
-      qc.invalidateQueries({ queryKey: keys.itemsOC.all });
-      qc.invalidateQueries({ queryKey: keys.detallesItemOC.all });
+      qc.invalidateQueries({ queryKey: keys.remisiones.all });
+      qc.invalidateQueries({ queryKey: keys.itemsRemision.all });
+      qc.invalidateQueries({ queryKey: keys.detallesItemRemision.all });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     } finally {
@@ -549,8 +483,8 @@ function Page() {
 
   const ingresadosCount = (item: any) => item.detallesItem?.length ?? item.cantidadIngresada ?? 0;
 
-  const pendientes = (oc: OrdenCompra) => {
-    const items = (oc as any).itemsOC ?? [];
+  const pendientes = (rem: Remision) => {
+    const items = (rem as any).itemsRemision ?? [];
     return items.filter((i: any) => ingresadosCount(i) < i.cantidadEsperada).length;
   };
 
@@ -567,40 +501,40 @@ function Page() {
     setQuery("");
   };
 
-  const ocList = useMemo(() => {
-    const list = ordenes ?? [];
+  const remList = useMemo(() => {
+    const list = remisiones ?? [];
     const q = query.toLowerCase().trim();
     let filtered = list;
     if (q) {
       filtered = filtered.filter(
-        (oc) =>
-          oc.numeroOC.toLowerCase().includes(q) ||
-          oc.proveedor.toLowerCase().includes(q) ||
-          new Date(oc.fechaCompra).toLocaleDateString("es-CO").includes(q),
+        (rem) =>
+          rem.numeroRemision.toLowerCase().includes(q) ||
+          rem.proveedor.toLowerCase().includes(q) ||
+          new Date(rem.fechaCompra).toLocaleDateString("es-CO").includes(q),
       );
     }
     if (statusFilter === "pending") {
-      filtered = filtered.filter((oc) => pendientes(oc) > 0);
+      filtered = filtered.filter((rem) => pendientes(rem) > 0);
     } else if (statusFilter === "completed") {
-      filtered = filtered.filter((oc) => pendientes(oc) === 0);
+      filtered = filtered.filter((rem) => pendientes(rem) === 0);
     }
     return filtered;
-  }, [ordenes, query, statusFilter]);
-  const totalPages = Math.max(1, Math.ceil(ocList.length / pageSize));
+  }, [remisiones, query, statusFilter]);
+  const totalPages = Math.max(1, Math.ceil(remList.length / pageSize));
   const safePage = Math.min(page, totalPages);
-  const paginatedOC = useMemo(
-    () => ocList.slice((safePage - 1) * pageSize, safePage * pageSize),
-    [ocList, safePage, pageSize],
+  const paginatedRem = useMemo(
+    () => remList.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [remList, safePage, pageSize],
   );
 
   return (
     <>
       <AppHeader
-        title="Órdenes de Compra"
-        subtitle="Compras, adquisiciones e ingreso de activos"
+        title="Remisiones"
+        subtitle="Remisiones de ingreso de activos"
         actions={
           canCreate && (
-            <Button onClick={openCreateOC} variant="brand" size="sm">
+            <Button onClick={openCreateRem} variant="brand" size="sm">
               <Plus className="h-4 w-4" /> Nuevo
             </Button>
           )
@@ -618,7 +552,7 @@ function Page() {
                   setQuery(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Buscar por N° OC, proveedor o fecha..."
+                placeholder="Buscar por N° remisión, proveedor o fecha..."
                 className="pl-9"
               />
             </div>
@@ -652,7 +586,7 @@ function Page() {
               )}
             </div>
             <span className="text-xs text-muted-foreground sm:ml-auto whitespace-nowrap">
-              {ocList.length} registro{ocList.length === 1 ? "" : "s"}
+              {remList.length} registro{remList.length === 1 ? "" : "s"}
             </span>
           </div>
         </Card>
@@ -662,10 +596,9 @@ function Page() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">
-                  <TableHead>N° OC</TableHead>
+                  <TableHead>N° Remisión</TableHead>
                   <TableHead>Proveedor</TableHead>
                   <TableHead>Fecha</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
                   <TableHead>Items</TableHead>
                   <TableHead className="w-56 text-right">Acciones</TableHead>
                 </TableRow>
@@ -673,22 +606,22 @@ function Page() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10">
+                    <TableCell colSpan={5} className="text-center py-10">
                       <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
-                ) : !ocList.length ? (
+                ) : !remList.length ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={5}
                       className="text-center text-sm text-muted-foreground py-10"
                     >
                       Sin registros
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedOC.map((oc) => {
-                    const items = (oc as any).itemsOC ?? [];
+                  paginatedRem.map((rem) => {
+                    const items = (rem as any).itemsRemision ?? [];
                     const totalItems = items.reduce(
                       (a: number, i: any) => a + i.cantidadEsperada,
                       0,
@@ -698,23 +631,22 @@ function Page() {
                       0,
                     );
                     return (
-                      <TableRow key={oc.idOrden} className="hover:bg-muted/30">
-                        <TableCell className="font-mono text-xs">{oc.numeroOC}</TableCell>
-                        <TableCell>{oc.proveedor}</TableCell>
+                      <TableRow key={rem.idRemision} className="hover:bg-muted/30">
+                        <TableCell className="font-mono text-xs">{rem.numeroRemision}</TableCell>
+                        <TableCell>{rem.proveedor}</TableCell>
                         <TableCell>
-                          {new Date(oc.fechaCompra).toLocaleDateString("es-CO")}
+                          {new Date(rem.fechaCompra).toLocaleDateString("es-CO")}
                         </TableCell>
-                        <TableCell className="text-right">{money.format(oc.total)}</TableCell>
                         <TableCell>
                           <span className="text-xs">
                             {ingresados}/{totalItems} ingresados
                           </span>
-                          {pendientes(oc) > 0 && (
+                          {pendientes(rem) > 0 && (
                             <Badge
                               variant="outline"
                               className="ml-2 bg-warning/15 text-warning text-xs"
                             >
-                              {pendientes(oc)} pend.
+                              {pendientes(rem)} pend.
                             </Badge>
                           )}
                         </TableCell>
@@ -723,7 +655,7 @@ function Page() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => setDetailView(oc)}
+                              onClick={() => setDetailView(rem)}
                               aria-label="Ver detalles"
                             >
                               <Eye className="h-4 w-4" />
@@ -732,7 +664,7 @@ function Page() {
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                onClick={() => openEditOC(oc)}
+                                onClick={() => openEditRem(rem)}
                                 aria-label="Editar"
                               >
                                 <Pencil className="h-4 w-4" />
@@ -742,7 +674,7 @@ function Page() {
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                onClick={() => setToDelete(oc)}
+                                onClick={() => setToDelete(rem)}
                                 aria-label="Eliminar"
                                 className="text-destructive hover:text-destructive"
                               >
@@ -766,43 +698,39 @@ function Page() {
             <Card className="p-6">
               <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
             </Card>
-          ) : !ocList.length ? (
+          ) : !remList.length ? (
             <Card className="p-6">
               <p className="text-center text-sm text-muted-foreground">Sin registros</p>
             </Card>
           ) : (
-            paginatedOC.map((oc) => {
-              const items = (oc as any).itemsOC ?? [];
+            paginatedRem.map((rem) => {
+              const items = (rem as any).itemsRemision ?? [];
               const totalItems = items.reduce((a: number, i: any) => a + i.cantidadEsperada, 0);
               const ingresados = items.reduce((a: number, i: any) => a + ingresadosCount(i), 0);
               return (
-                <Card key={oc.idOrden} className="p-3">
+                <Card key={rem.idRemision} className="p-3">
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <span className="text-xs text-muted-foreground font-medium shrink-0 w-28 leading-5">
-                        N° OC
+                        N° Remisión
                       </span>
-                      <span className="text-sm text-right font-mono leading-5">{oc.numeroOC}</span>
+                      <span className="text-sm text-right font-mono leading-5">
+                        {rem.numeroRemision}
+                      </span>
                     </div>
                     <div className="flex items-start justify-between gap-2">
                       <span className="text-xs text-muted-foreground font-medium shrink-0 w-28 leading-5">
                         Proveedor
                       </span>
-                      <span className="text-sm text-right leading-5">{oc.proveedor}</span>
+                      <span className="text-sm text-right leading-5">{rem.proveedor}</span>
                     </div>
                     <div className="flex items-start justify-between gap-2">
                       <span className="text-xs text-muted-foreground font-medium shrink-0 w-28 leading-5">
                         Fecha
                       </span>
                       <span className="text-sm text-right leading-5">
-                        {new Date(oc.fechaCompra).toLocaleDateString("es-CO")}
+                        {new Date(rem.fechaCompra).toLocaleDateString("es-CO")}
                       </span>
-                    </div>
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-xs text-muted-foreground font-medium shrink-0 w-28 leading-5">
-                        Total
-                      </span>
-                      <span className="text-sm text-right leading-5">{money.format(oc.total)}</span>
                     </div>
                     <div className="flex items-start justify-between gap-2">
                       <span className="text-xs text-muted-foreground font-medium shrink-0 w-28 leading-5">
@@ -810,23 +738,23 @@ function Page() {
                       </span>
                       <span className="text-sm text-right leading-5">
                         {ingresados}/{totalItems} ingresados
-                        {pendientes(oc) > 0 && (
+                        {pendientes(rem) > 0 && (
                           <Badge
                             variant="outline"
                             className="ml-1 bg-warning/15 text-warning text-xs"
                           >
-                            {pendientes(oc)} pend.
+                            {pendientes(rem)} pend.
                           </Badge>
                         )}
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center justify-end gap-1 pt-3 mt-3 border-t">
-                    <Button size="sm" variant="ghost" onClick={() => setDetailView(oc)}>
+                    <Button size="sm" variant="ghost" onClick={() => setDetailView(rem)}>
                       <Eye className="h-3.5 w-3.5 mr-1" /> Ver
                     </Button>
                     {canEdit && (
-                      <Button size="sm" variant="ghost" onClick={() => openEditOC(oc)}>
+                      <Button size="sm" variant="ghost" onClick={() => openEditRem(rem)}>
                         <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
                       </Button>
                     )}
@@ -834,7 +762,7 @@ function Page() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => setToDelete(oc)}
+                        onClick={() => setToDelete(rem)}
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar
@@ -847,7 +775,7 @@ function Page() {
           )}
         </div>
 
-        {ocList.length > 0 && (
+        {remList.length > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-1">
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -900,24 +828,26 @@ function Page() {
         )}
       </main>
 
-      {/* OC Create/Edit Dialog */}
-      <Dialog open={ocFormOpen} onOpenChange={setOcFormOpen}>
+      {/* Remisión Create/Edit Dialog */}
+      <Dialog open={remFormOpen} onOpenChange={setRemFormOpen}>
         <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingOC ? "Editar orden" : "Nueva orden de compra"}</DialogTitle>
-            <DialogDescription>Ingresa los datos de la orden de compra.</DialogDescription>
+            <DialogTitle>{editingRem ? "Editar remisión" : "Nueva remisión"}</DialogTitle>
+            <DialogDescription>Ingresa los datos de la remisión.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={submitOC} className="space-y-6">
-            {/* OC fields */}
+          <form onSubmit={submitRem} className="space-y-6">
+            {/* Remisión fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="numeroOC">
-                  N° OC <span className="text-destructive">*</span>
+                <Label htmlFor="numeroRemision">
+                  N° Remisión <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="numeroOC"
-                  value={ocForm.numeroOC}
-                  onChange={(e) => setOcForm((s) => ({ ...s, numeroOC: e.target.value }))}
+                  id="numeroRemision"
+                  value={remForm.numeroRemision}
+                  onChange={(e) =>
+                    setRemForm((s) => ({ ...s, numeroRemision: e.target.value }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -926,26 +856,8 @@ function Page() {
                 </Label>
                 <Input
                   id="proveedor"
-                  value={ocForm.proveedor}
-                  onChange={(e) => setOcForm((s) => ({ ...s, proveedor: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="total">Total</Label>
-                <Input
-                  id="total"
-                  type="number"
-                  value={ocForm.total}
-                  onChange={(e) => setOcForm((s) => ({ ...s, total: Number(e.target.value) }))}
-                />
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="observaciones">Observaciones</Label>
-                <Textarea
-                  id="observaciones"
-                  value={ocForm.observaciones}
-                  onChange={(e) => setOcForm((s) => ({ ...s, observaciones: e.target.value }))}
-                  rows={3}
+                  value={remForm.proveedor}
+                  onChange={(e) => setRemForm((s) => ({ ...s, proveedor: e.target.value }))}
                 />
               </div>
             </div>
@@ -954,7 +866,7 @@ function Page() {
             <>
               <hr />
               <div>
-                <h4 className="text-sm font-semibold mb-3">Ítems de la orden</h4>
+                <h4 className="text-sm font-semibold mb-3">Ítems de la remisión</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                   <div className="space-y-2">
                     <Label>
@@ -1008,16 +920,6 @@ function Page() {
                       }
                     />
                   </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label>Observaciones del ítem</Label>
-                    <Textarea
-                      value={createItemForm.observaciones}
-                      onChange={(e) =>
-                        setCreateItemForm((s) => ({ ...s, observaciones: e.target.value }))
-                      }
-                      rows={2}
-                    />
-                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button type="button" variant="outline" size="sm" onClick={addItemToCreateList}>
@@ -1033,11 +935,8 @@ function Page() {
                         setEditingItemIndex(null);
                         setCreateItemForm({
                           idCategoria: "",
-                          nombreProducto: "",
                           marca: "",
                           modelo: "",
-                          referencia: "",
-                          observaciones: "",
                           cantidadEsperada: 1,
                         });
                       }}
@@ -1089,14 +988,14 @@ function Page() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setOcFormOpen(false)}
+                onClick={() => setRemFormOpen(false)}
                 disabled={submitting}
               >
                 Cancelar
               </Button>
               <Button type="submit" variant="brand" disabled={submitting}>
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {editingOC ? "Guardar cambios" : "Crear orden"}
+                {editingRem ? "Guardar cambios" : "Crear remisión"}
               </Button>
             </DialogFooter>
           </form>
@@ -1108,7 +1007,7 @@ function Page() {
         <DialogContent className="w-full max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {detailData?.numeroOC ?? detailView?.numeroOC ?? "Detalles de la orden"}
+              {detailData?.numeroRemision ?? detailView?.numeroRemision ?? "Detalles de la remisión"}
             </DialogTitle>
             <DialogDescription>
               {detailData?.proveedor ??
@@ -1119,7 +1018,7 @@ function Page() {
           {(detailData ?? detailView) &&
             (() => {
               const data = detailData ?? detailView!;
-              const items = (data as any).itemsOC ?? [];
+              const items = (data as any).itemsRemision ?? [];
               const totalItems = items.reduce((a: number, i: any) => a + i.cantidadEsperada, 0);
               const ingresados = items.reduce((a: number, i: any) => a + ingresadosCount(i), 0);
               const hasPendientes = items.some((i: any) =>
@@ -1127,10 +1026,10 @@ function Page() {
               );
               return (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-sm">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
                     <div>
-                      <Label className="text-muted-foreground text-xs">N° OC</Label>
-                      <p className="font-medium truncate">{data.numeroOC}</p>
+                      <Label className="text-muted-foreground text-xs">N° Remisión</Label>
+                      <p className="font-medium truncate">{data.numeroRemision}</p>
                     </div>
                     <div>
                       <Label className="text-muted-foreground text-xs">Proveedor</Label>
@@ -1140,25 +1039,17 @@ function Page() {
                       <Label className="text-muted-foreground text-xs">Fecha</Label>
                       <p>{new Date(data.fechaCompra).toLocaleDateString("es-CO")}</p>
                     </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs">Total</Label>
-                      <p className="font-medium truncate">{money.format(data.total)}</p>
-                    </div>
-                    <div className="col-span-full">
-                      <Label className="text-muted-foreground text-xs">Observaciones</Label>
-                      <p className="text-sm break-words">{data.observaciones || "—"}</p>
-                    </div>
                   </div>
 
                   <div>
                     <div className="flex flex-wrap gap-2 items-center mb-3">
-                      <h4 className="text-sm font-semibold">Ítems de la orden</h4>
+                      <h4 className="text-sm font-semibold">Ítems de la remisión</h4>
                       {canCreate && (
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            const id = data.idOrden;
+                            const id = data.idRemision;
                             setDetailView(null);
                             openAddItem(id);
                           }}
@@ -1175,9 +1066,9 @@ function Page() {
                             size="sm"
                             variant="brand"
                             onClick={() => {
-                              const id = data.idOrden;
+                              const id = data.idRemision;
                               setDetailView(null);
-                              confirmarOC(id);
+                              confirmarRem(id);
                             }}
                           >
                             <PackageCheck className="h-3 w-3" /> Confirmar ingreso
@@ -1206,7 +1097,7 @@ function Page() {
                                 const serialesCount = detalles.length;
                                 const completo = serialesCount >= item.cantidadEsperada;
                                 return (
-                                  <TableRow key={item.idItemOC} className="hover:bg-muted/30">
+                                  <TableRow key={item.idItemRemision} className="hover:bg-muted/30">
                                     <TableCell>
                                       <div className="flex flex-col gap-0.5 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
@@ -1216,21 +1107,6 @@ function Page() {
                                           >
                                             {item.nombreCategoria ?? "—"}
                                           </Badge>
-                                          {item.observaciones && (
-                                            <TooltipProvider>
-                                              <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                  <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help shrink-0" />
-                                                </TooltipTrigger>
-                                                <TooltipContent
-                                                  side="top"
-                                                  className="max-w-[250px] text-xs"
-                                                >
-                                                  {item.observaciones}
-                                                </TooltipContent>
-                                              </Tooltip>
-                                            </TooltipProvider>
-                                          )}
                                         </div>
                                         <span className="text-xs text-muted-foreground">
                                           {item.marca} / {item.modelo}
@@ -1273,7 +1149,7 @@ function Page() {
                                         {detalles.length > 0 ? (
                                           detalles.map((d: any) => (
                                             <Badge
-                                              key={d.idDetalleItemOC}
+                                              key={d.idDetalleItemRemision}
                                               variant="outline"
                                               className={`text-[10px] h-5 px-1.5 ${d.procesado ? "bg-success/15 text-success border-success/30" : "bg-muted"}`}
                                             >
@@ -1291,7 +1167,7 @@ function Page() {
                                             variant="ghost"
                                             className="h-6 w-6 p-0 shrink-0"
                                             onClick={() => {
-                                              const id = item.idItemOC;
+                                              const id = item.idItemRemision;
                                               const nombre = item.nombreCategoria ?? "";
                                               const remaining = Math.max(
                                                 0,
@@ -1313,7 +1189,7 @@ function Page() {
                                           className="h-7 w-7"
                                           aria-label="Editar seriales"
                                           onClick={() => {
-                                            const id = item.idItemOC;
+                                            const id = item.idItemRemision;
                                             const nombre = item.nombreCategoria ?? "";
                                             const remaining = Math.max(
                                               0,
@@ -1340,7 +1216,7 @@ function Page() {
                             const serialesCount = detalles.length;
                             const completo = serialesCount >= item.cantidadEsperada;
                             return (
-                              <Card key={item.idItemOC} className="p-3">
+                              <Card key={item.idItemRemision} className="p-3">
                                 <div className="space-y-2">
                                   <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0 flex-1">
@@ -1360,16 +1236,11 @@ function Page() {
                                       {serialesCount}/{item.cantidadEsperada}
                                     </Badge>
                                   </div>
-                                  {item.observaciones && (
-                                    <p className="text-xs text-muted-foreground">
-                                      {item.observaciones}
-                                    </p>
-                                  )}
                                   <div className="flex flex-wrap gap-1 items-center pt-1">
                                     {detalles.length > 0 ? (
                                       detalles.map((d: any) => (
                                         <Badge
-                                          key={d.idDetalleItemOC}
+                                          key={d.idDetalleItemRemision}
                                           variant="outline"
                                           className={`text-[10px] h-5 px-1.5 ${d.procesado ? "bg-success/15 text-success border-success/30" : "bg-muted"}`}
                                         >
@@ -1391,7 +1262,7 @@ function Page() {
                                         variant="ghost"
                                         className="h-7 text-xs"
                                         onClick={() => {
-                                          const id = item.idItemOC;
+                                          const id = item.idItemRemision;
                                           const nombre = item.nombreCategoria ?? "";
                                           const remaining = Math.max(
                                             0,
@@ -1408,7 +1279,7 @@ function Page() {
                                       variant="ghost"
                                       className="h-7 text-xs"
                                       onClick={() => {
-                                        const id = item.idItemOC;
+                                        const id = item.idItemRemision;
                                         const nombre = item.nombreCategoria ?? "";
                                         const remaining = Math.max(
                                           0,
@@ -1443,7 +1314,7 @@ function Page() {
       <Dialog open={itemFormOpen} onOpenChange={setItemFormOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Agregar ítem a la orden</DialogTitle>
+            <DialogTitle>Agregar ítem a la remisión</DialogTitle>
             <DialogDescription>
               Selecciona la categoría y completa los datos del producto.
             </DialogDescription>
@@ -1502,15 +1373,6 @@ function Page() {
                   }
                 />
               </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="obs">Observaciones</Label>
-                <Textarea
-                  id="obs"
-                  value={itemForm.observaciones}
-                  onChange={(e) => setItemForm((s) => ({ ...s, observaciones: e.target.value }))}
-                  rows={2}
-                />
-              </div>
             </div>
             <DialogFooter>
               <Button
@@ -1547,29 +1409,31 @@ function Page() {
               <div className="border rounded-lg p-3 space-y-2">
                 <p className="text-xs font-semibold text-muted-foreground">Seriales existentes</p>
                 {existingSerials.map((es) => {
-                  const isRemoved = removedSerialIds.includes(es.idDetalleItemOC);
-                  const editedValue = editedSerials[es.idDetalleItemOC] ?? es.serial;
+                  const isRemoved = removedSerialIds.includes(es.idDetalleItemRemision);
+                  const editedValue = editedSerials[es.idDetalleItemRemision] ?? es.serial;
                   return (
                     <div
-                      key={es.idDetalleItemOC}
+                      key={es.idDetalleItemRemision}
                       className={`flex items-center gap-2 text-sm px-2 py-1.5 rounded ${isRemoved ? "bg-destructive/10 line-through opacity-50" : "bg-muted/30"}`}
                     >
                       <Input
                         value={editedValue}
-                        onChange={(e) => updateExistingSerial(es.idDetalleItemOC, e.target.value)}
+                        onChange={(e) =>
+                          updateExistingSerial(es.idDetalleItemRemision, e.target.value)
+                        }
                         disabled={isRemoved}
                         className="h-7 font-mono text-xs flex-1 min-w-0"
                       />
                       {isRemoved ? (
                         <button
-                          onClick={() => restoreExistingSerial(es.idDetalleItemOC)}
+                          onClick={() => restoreExistingSerial(es.idDetalleItemRemision)}
                           className="text-xs text-primary hover:text-primary/80 shrink-0"
                         >
                           Restaurar
                         </button>
                       ) : (
                         <button
-                          onClick={() => removeExistingSerial(es.idDetalleItemOC)}
+                          onClick={() => removeExistingSerial(es.idDetalleItemRemision)}
                           className="text-destructive hover:text-destructive/80 text-xs shrink-0"
                         >
                           Quitar
@@ -1645,7 +1509,7 @@ function Page() {
         onOpenChange={(o) => {
           if (!o) {
             setEditReasonOpen(false);
-            setPendingEditOC(null);
+            setPendingEditRem(null);
           }
         }}
       >
@@ -1669,12 +1533,12 @@ function Page() {
               variant="outline"
               onClick={() => {
                 setEditReasonOpen(false);
-                setPendingEditOC(null);
+                setPendingEditRem(null);
               }}
             >
               Cancelar
             </Button>
-            <Button variant="brand" onClick={confirmOCEditReason} disabled={!editReason.trim()}>
+            <Button variant="brand" onClick={confirmRemEditReason} disabled={!editReason.trim()}>
               Continuar
             </Button>
           </DialogFooter>
@@ -1685,7 +1549,7 @@ function Page() {
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar orden?</AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar remisión?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. Se eliminarán también sus ítems y seriales no
               procesados.
@@ -1694,7 +1558,7 @@ function Page() {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={deleteOC}
+              onClick={deleteRem}
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

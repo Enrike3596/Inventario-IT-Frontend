@@ -63,9 +63,9 @@ export interface CategoriaActivo {
   estado: EstadoGenerico;
 }
 
-export interface DetalleItemOC {
-  idDetalleItemOC: number;
-  idItemOC: number;
+export interface DetalleItemRemision {
+  idDetalleItemRemision: number;
+  idItemRemision: number;
   serial: string;
   procesado: boolean;
   idActivo: number | null;
@@ -73,54 +73,46 @@ export interface DetalleItemOC {
   observaciones: string | null;
 }
 
-export interface ItemOC {
-  idItemOC: number;
-  idOrden: number;
+export interface ItemRemision {
+  idItemRemision: number;
+  idRemision: number;
   idCategoria: number;
   nombreCategoria?: string;
-  nombreProducto: string;
   marca: string;
   modelo: string;
-  referencia: string | null;
-  observaciones: string | null;
   cantidadEsperada: number;
   cantidadIngresada: number;
-  detallesItem: DetalleItemOC[];
+  detallesItem: DetalleItemRemision[];
 }
 
-export interface OrdenCompra {
-  idOrden: number;
-  numeroOC: string;
+export interface Remision {
+  idRemision: number;
+  numeroRemision: string;
   proveedor: string;
-  total: number;
-  observaciones: string;
   fechaCompra: string;
-  itemsOC?: ItemOC[];
+  itemsRemision?: ItemRemision[];
 }
 
-export interface OrdenCompraDetail {
-  idOrden: number;
-  numeroOC: string;
+export interface RemisionDetail {
+  idRemision: number;
+  numeroRemision: string;
   proveedor: string;
-  total: number;
-  observaciones: string;
   fechaCompra: string;
-  itemsOC: ItemOC[];
+  itemsRemision: ItemRemision[];
 }
 
 export interface Activo {
   idActivo: number;
   idCategoria: number;
   nombreCategoria?: string;
-  idOrden: number;
-  numeroOC?: string;
-  idItemOC?: number;
-  idDetalleItemOC?: number;
+  idRemision: number;
+  numeroRemision?: string;
+  idItemRemision?: number;
+  idDetalleItemRemision?: number;
   codigoActivo: string;
   serial: string;
   marca: string;
   modelo: string;
-  referencia: string | null;
   estadoActivo: EstadoActivo;
   fechaAdquisicion: string;
   fechaBaja: string | null;
@@ -291,7 +283,7 @@ export interface FiltrosInventario {
   fechaAdquisicionDesde?: string | null;
   fechaAdquisicionHasta?: string | null;
   proveedor?: string | null;
-  numeroOC?: string | null;
+  numeroRemision?: string | null;
 }
 
 export interface ReporteInventarioRequest {

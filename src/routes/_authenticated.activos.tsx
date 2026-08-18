@@ -56,9 +56,9 @@ import {
   useMovimientosPorActivo,
   useAsignacionesPorActivo,
   useCategorias,
-  useOrdenesCompra,
-  useOrdenCompraDetail,
-  useDetallesItemOCPorItem,
+  useRemisiones,
+  useRemisionDetail,
+  useDetallesItemRemisionPorItem,
 } from "@/lib/queries";
 import { sanitizeError } from "@/lib/api";
 import type { Activo, Movimiento } from "@/lib/types";
@@ -224,14 +224,14 @@ function ActivoFormContent({
   setOpen,
 }: CustomFormProps<Activo>) {
   const { data: categorias } = useCategorias();
-  const { data: ordenes } = useOrdenesCompra();
+  const { data: remisiones } = useRemisiones();
   const createMutation = useCreateActivo();
   const queryClient = useQueryClient();
-  const ocId = form.idOrden as number | undefined;
-  const { data: ocDetail } = useOrdenCompraDetail(ocId ?? 0);
-  const items = ocDetail?.itemsOC ?? [];
-  const itemId = form.idItemOC as number | undefined;
-  const { data: detallesItem } = useDetallesItemOCPorItem(itemId ?? 0);
+  const remId = form.idRemision as number | undefined;
+  const { data: remDetail } = useRemisionDetail(remId ?? 0);
+  const items = remDetail?.itemsRemision ?? [];
+  const itemId = form.idItemRemision as number | undefined;
+  const { data: detallesItem } = useDetallesItemRemisionPorItem(itemId ?? 0);
   const pendings = detallesItem?.filter((d) => !d.procesado) ?? [];
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -242,35 +242,33 @@ function ActivoFormContent({
     [asignacionesActivo],
   );
 
-  const handleOCChange = (value: string) => {
+  const handleRemisionChange = (value: string) => {
     const id = Number(value);
-    const oc = ordenes?.find((o) => o.idOrden === id);
+    const rem = remisiones?.find((r) => r.idRemision === id);
     setForm((prev) => ({
       ...prev,
-      idOrden: id,
-      idItemOC: "",
+      idRemision: id,
+      idItemRemision: "",
       idCategoria: "",
       marca: "",
       modelo: "",
-      referencia: "",
-      codigoActivo: generateCodigoActivo(oc?.numeroOC),
+      codigoActivo: generateCodigoActivo(rem?.numeroRemision),
       estadoActivo: "Disponible",
     }));
   };
 
   const handleItemChange = (value: string) => {
     const idItem = Number(value);
-    const item = items.find((i) => i.idItemOC === idItem);
+    const item = items.find((i) => i.idItemRemision === idItem);
     if (!item) return;
-    const oc = ordenes?.find((o) => o.idOrden === (form.idOrden as number));
+    const rem = remisiones?.find((r) => r.idRemision === (form.idRemision as number));
     setForm((prev) => ({
       ...prev,
-      idItemOC: idItem,
+      idItemRemision: idItem,
       idCategoria: item.idCategoria,
       marca: item.marca,
       modelo: item.modelo,
-      referencia: item.referencia ?? "",
-      codigoActivo: generateCodigoActivo(oc?.numeroOC, item.marca, item.modelo),
+      codigoActivo: generateCodigoActivo(rem?.numeroRemision, item.marca, item.modelo),
       estadoActivo: "Disponible",
     }));
   };
@@ -305,35 +303,34 @@ function ActivoFormContent({
       } else if (pendings.length > 0) {
         const det = pendings[0];
         await createMutation.mutateAsync({
-          idOrden: ocId!,
-          idItemOC: itemId!,
-          idDetalleItemOC: det.idDetalleItemOC,
+          idRemision: remId!,
+          idItemRemision: itemId!,
+          idDetalleItemRemision: det.idDetalleItemRemision,
           idCategoria: form.idCategoria as number,
           marca: form.marca as string,
           modelo: form.modelo as string,
-          referencia: (form.referencia as string) ?? null,
           serial: det.serial,
           codigoActivo:
             (form.codigoActivo as string) ||
             generateCodigoActivo(
-              ordenes?.find((o) => o.idOrden === ocId)?.numeroOC,
-              items.find((i) => i.idItemOC === itemId)?.marca,
-              items.find((i) => i.idItemOC === itemId)?.modelo,
+              remisiones?.find((r) => r.idRemision === remId)?.numeroRemision,
+              items.find((i) => i.idItemRemision === itemId)?.marca,
+              items.find((i) => i.idItemRemision === itemId)?.modelo,
               det.serial,
             ),
           estadoActivo: (form.estadoActivo as string) ?? "Disponible",
           observaciones: (form.observaciones as string) ?? "",
         } as Partial<Activo>);
-        toast.success("Activo creado desde la orden de compra");
+        toast.success("Activo creado desde la remisión");
       } else {
         await createMutation.mutateAsync({
           ...form,
-          idOrden: form.idOrden,
-          idItemOC: form.idItemOC,
+          idRemision: form.idRemision,
+          idItemRemision: form.idItemRemision,
         } as Partial<Activo>);
         toast.success("Activo creado");
       }
-      if (ocId) queryClient.invalidateQueries({ queryKey: keys.ordenes.detail(ocId) });
+      if (remId) queryClient.invalidateQueries({ queryKey: keys.remisiones.detail(remId) });
       setOpen(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error al crear activo(s)";
@@ -348,24 +345,26 @@ function ActivoFormContent({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* OC selector (first field) */}
+        {/* Remisión selector (first field) */}
         <div className="space-y-2">
-          <Label htmlFor="idOrden">
-            Orden de compra <span className="text-destructive"> *</span>
+          <Label htmlFor="idRemision">
+            Remisión <span className="text-destructive"> *</span>
           </Label>
           <Select
             value={
-              form.idOrden !== undefined && form.idOrden !== "" ? String(form.idOrden) : undefined
+              form.idRemision !== undefined && form.idRemision !== ""
+                ? String(form.idRemision)
+                : undefined
             }
-            onValueChange={handleOCChange}
+            onValueChange={handleRemisionChange}
           >
-            <SelectTrigger id="idOrden">
-              <SelectValue placeholder="Selecciona orden..." />
+            <SelectTrigger id="idRemision">
+              <SelectValue placeholder="Selecciona remisión..." />
             </SelectTrigger>
             <SelectContent>
-              {(ordenes ?? []).map((o) => (
-                <SelectItem key={o.idOrden} value={String(o.idOrden)}>
-                  {o.numeroOC}
+              {(remisiones ?? []).map((r) => (
+                <SelectItem key={r.idRemision} value={String(r.idRemision)}>
+                  {r.numeroRemision}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -373,20 +372,20 @@ function ActivoFormContent({
         </div>
 
         {/* Item selector — solo productos con seriales pendientes */}
-        {!!ocId && items.length > 0 && (
+        {!!remId && items.length > 0 && (
           <div className="space-y-2">
-            <Label htmlFor="idItemOC">
-              Producto en OC <span className="text-destructive"> *</span>
+            <Label htmlFor="idItemRemision">
+              Producto en la remisión <span className="text-destructive"> *</span>
             </Label>
             <Select
               value={
-                form.idItemOC !== undefined && form.idItemOC !== ""
-                  ? String(form.idItemOC)
+                form.idItemRemision !== undefined && form.idItemRemision !== ""
+                  ? String(form.idItemRemision)
                   : undefined
               }
               onValueChange={handleItemChange}
             >
-              <SelectTrigger id="idItemOC">
+              <SelectTrigger id="idItemRemision">
                 <SelectValue placeholder="Selecciona producto..." />
               </SelectTrigger>
               <SelectContent>
@@ -398,8 +397,8 @@ function ActivoFormContent({
                       !i.detallesItem.every((d) => d.procesado),
                   )
                   .map((i) => (
-                    <SelectItem key={i.idItemOC} value={String(i.idItemOC)}>
-                      {i.nombreProducto} — {i.marca} {i.modelo}
+                    <SelectItem key={i.idItemRemision} value={String(i.idItemRemision)}>
+                      {i.marca} {i.modelo}
                     </SelectItem>
                   ))}
                 {items.every(
@@ -409,7 +408,7 @@ function ActivoFormContent({
                     i.detallesItem.every((d) => d.procesado),
                 ) && (
                   <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                    Todos los productos de esta orden ya fueron procesados
+                    Todos los productos de esta remisión ya fueron procesados
                   </div>
                 )}
               </SelectContent>
@@ -417,11 +416,11 @@ function ActivoFormContent({
           </div>
         )}
 
-        {/* Serial y código cuando hay seriales pendientes desde OC */}
+        {/* Serial y código cuando hay seriales pendientes desde la remisión */}
         {!!itemId && pendings.length > 0 && (
           <>
             {pendings.slice(0, 1).map((det) => (
-              <div key={det.idDetalleItemOC} className="space-y-2">
+              <div key={det.idDetalleItemRemision} className="space-y-2">
                 <Label htmlFor="serialOC">Serial</Label>
                 <Input id="serialOC" value={det.serial} readOnly className="bg-muted" />
               </div>
@@ -586,7 +585,7 @@ function ActivosPage() {
   const { data: activos, isLoading } = useActivos();
   const { data: asignaciones } = useAsignaciones();
   const { data: categorias } = useCategorias();
-  const { data: ordenes } = useOrdenesCompra();
+  const { data: remisiones } = useRemisiones();
   const createMutation = useCreateActivo();
   const updateMutation = useUpdateActivo();
   const deleteMutation = useDeleteActivo();
@@ -720,11 +719,14 @@ function ActivosPage() {
             options: (categorias ?? []).map((c) => ({ value: c.idCategoria, label: c.nombre })),
           },
           {
-            key: "idOrden",
-            label: "Orden de compra",
+            key: "idRemision",
+            label: "Remisión",
             type: "select",
             required: true,
-            options: (ordenes ?? []).map((o) => ({ value: o.idOrden, label: o.numeroOC })),
+            options: (remisiones ?? []).map((r) => ({
+              value: r.idRemision,
+              label: r.numeroRemision,
+            })),
           },
           {
             key: "estadoActivo",

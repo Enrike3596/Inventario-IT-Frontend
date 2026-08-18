@@ -19,8 +19,8 @@ import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedSedesRouteImport } from './routes/_authenticated.sedes'
 import { Route as AuthenticatedSalidasRouteImport } from './routes/_authenticated.salidas'
 import { Route as AuthenticatedRolesRouteImport } from './routes/_authenticated.roles'
+import { Route as AuthenticatedRemisionesRouteImport } from './routes/_authenticated.remisiones'
 import { Route as AuthenticatedParqueaderosRouteImport } from './routes/_authenticated.parqueaderos'
-import { Route as AuthenticatedOrdenesCompraRouteImport } from './routes/_authenticated.ordenes-compra'
 import { Route as AuthenticatedMovimientosRouteImport } from './routes/_authenticated.movimientos'
 import { Route as AuthenticatedInformesRouteImport } from './routes/_authenticated.informes'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
@@ -79,16 +79,15 @@ const AuthenticatedRolesRoute = AuthenticatedRolesRouteImport.update({
   path: '/roles',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedRemisionesRoute = AuthenticatedRemisionesRouteImport.update({
+  id: '/remisiones',
+  path: '/remisiones',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedParqueaderosRoute =
   AuthenticatedParqueaderosRouteImport.update({
     id: '/parqueaderos',
     path: '/parqueaderos',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedOrdenesCompraRoute =
-  AuthenticatedOrdenesCompraRouteImport.update({
-    id: '/ordenes-compra',
-    path: '/ordenes-compra',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedMovimientosRoute =
@@ -147,8 +146,8 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/informes': typeof AuthenticatedInformesRoute
   '/movimientos': typeof AuthenticatedMovimientosRoute
-  '/ordenes-compra': typeof AuthenticatedOrdenesCompraRoute
   '/parqueaderos': typeof AuthenticatedParqueaderosRoute
+  '/remisiones': typeof AuthenticatedRemisionesRoute
   '/roles': typeof AuthenticatedRolesRoute
   '/salidas': typeof AuthenticatedSalidasRoute
   '/sedes': typeof AuthenticatedSedesRoute
@@ -168,8 +167,8 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/informes': typeof AuthenticatedInformesRoute
   '/movimientos': typeof AuthenticatedMovimientosRoute
-  '/ordenes-compra': typeof AuthenticatedOrdenesCompraRoute
   '/parqueaderos': typeof AuthenticatedParqueaderosRoute
+  '/remisiones': typeof AuthenticatedRemisionesRoute
   '/roles': typeof AuthenticatedRolesRoute
   '/salidas': typeof AuthenticatedSalidasRoute
   '/sedes': typeof AuthenticatedSedesRoute
@@ -191,8 +190,8 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/informes': typeof AuthenticatedInformesRoute
   '/_authenticated/movimientos': typeof AuthenticatedMovimientosRoute
-  '/_authenticated/ordenes-compra': typeof AuthenticatedOrdenesCompraRoute
   '/_authenticated/parqueaderos': typeof AuthenticatedParqueaderosRoute
+  '/_authenticated/remisiones': typeof AuthenticatedRemisionesRoute
   '/_authenticated/roles': typeof AuthenticatedRolesRoute
   '/_authenticated/salidas': typeof AuthenticatedSalidasRoute
   '/_authenticated/sedes': typeof AuthenticatedSedesRoute
@@ -214,8 +213,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/informes'
     | '/movimientos'
-    | '/ordenes-compra'
     | '/parqueaderos'
+    | '/remisiones'
     | '/roles'
     | '/salidas'
     | '/sedes'
@@ -235,8 +234,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/informes'
     | '/movimientos'
-    | '/ordenes-compra'
     | '/parqueaderos'
+    | '/remisiones'
     | '/roles'
     | '/salidas'
     | '/sedes'
@@ -257,8 +256,8 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/informes'
     | '/_authenticated/movimientos'
-    | '/_authenticated/ordenes-compra'
     | '/_authenticated/parqueaderos'
+    | '/_authenticated/remisiones'
     | '/_authenticated/roles'
     | '/_authenticated/salidas'
     | '/_authenticated/sedes'
@@ -347,18 +346,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRolesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/remisiones': {
+      id: '/_authenticated/remisiones'
+      path: '/remisiones'
+      fullPath: '/remisiones'
+      preLoaderRoute: typeof AuthenticatedRemisionesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/parqueaderos': {
       id: '/_authenticated/parqueaderos'
       path: '/parqueaderos'
       fullPath: '/parqueaderos'
       preLoaderRoute: typeof AuthenticatedParqueaderosRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/ordenes-compra': {
-      id: '/_authenticated/ordenes-compra'
-      path: '/ordenes-compra'
-      fullPath: '/ordenes-compra'
-      preLoaderRoute: typeof AuthenticatedOrdenesCompraRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/movimientos': {
@@ -429,8 +428,8 @@ interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedInformesRoute: typeof AuthenticatedInformesRoute
   AuthenticatedMovimientosRoute: typeof AuthenticatedMovimientosRoute
-  AuthenticatedOrdenesCompraRoute: typeof AuthenticatedOrdenesCompraRoute
   AuthenticatedParqueaderosRoute: typeof AuthenticatedParqueaderosRoute
+  AuthenticatedRemisionesRoute: typeof AuthenticatedRemisionesRoute
   AuthenticatedRolesRoute: typeof AuthenticatedRolesRoute
   AuthenticatedSalidasRoute: typeof AuthenticatedSalidasRoute
   AuthenticatedSedesRoute: typeof AuthenticatedSedesRoute
@@ -446,8 +445,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedInformesRoute: AuthenticatedInformesRoute,
   AuthenticatedMovimientosRoute: AuthenticatedMovimientosRoute,
-  AuthenticatedOrdenesCompraRoute: AuthenticatedOrdenesCompraRoute,
   AuthenticatedParqueaderosRoute: AuthenticatedParqueaderosRoute,
+  AuthenticatedRemisionesRoute: AuthenticatedRemisionesRoute,
   AuthenticatedRolesRoute: AuthenticatedRolesRoute,
   AuthenticatedSalidasRoute: AuthenticatedSalidasRoute,
   AuthenticatedSedesRoute: AuthenticatedSedesRoute,

@@ -47,7 +47,7 @@ const inventario: Item[] = [
     icon: FolderTree,
     roles: ["super_admin", "coordinador"],
   },
-  { title: "Órdenes de Compra", url: "/ordenes-compra", icon: ClipboardList },
+  { title: "Remisiones", url: "/remisiones", icon: ClipboardList },
 ];
 
 const operacion: Item[] = [

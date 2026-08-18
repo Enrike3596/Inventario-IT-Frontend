@@ -8,11 +8,11 @@ import type {
   Usuario,
   CategoriaActivo,
   Parqueadero,
-  OrdenCompra,
-  OrdenCompraDetail,
+  Remision,
+  RemisionDetail,
   Activo,
-  ItemOC,
-  DetalleItemOC,
+  ItemRemision,
+  DetalleItemRemision,
   Canal,
   Salida,
   AsignacionUsuario,
@@ -34,14 +34,17 @@ export const keys = {
   usuarios: { all: ["usuarios"] as string[] },
   categorias: { all: ["categorias"] as const },
   parqueaderos: { all: ["parqueaderos"] as const },
-  ordenes: { all: ["ordenes"] as const, detail: (id: number) => ["ordenes", id] as const },
-  itemsOC: {
-    all: ["itemsOC"] as const,
-    porOrden: (id: number) => ["itemsOC", "orden", id] as const,
+  remisiones: {
+    all: ["remisiones"] as const,
+    detail: (id: number) => ["remisiones", id] as const,
   },
-  detallesItemOC: {
-    all: ["detallesItemOC"] as const,
-    porItem: (id: number) => ["detallesItemOC", "item", id] as const,
+  itemsRemision: {
+    all: ["itemsRemision"] as const,
+    porRemision: (id: number) => ["itemsRemision", "remision", id] as const,
+  },
+  detallesItemRemision: {
+    all: ["detallesItemRemision"] as const,
+    porItem: (id: number) => ["detallesItemRemision", "item", id] as const,
   },
   activos: { all: ["activos"] as const },
   canales: { all: ["canales"] as const },
@@ -158,115 +161,118 @@ export function useDeleteParqueadero() {
   return useDelete(keys.parqueaderos.all, "/api/Parqueaderos");
 }
 
-// ---- Órdenes de compra ----
-export function useOrdenesCompra() {
-  return useList<OrdenCompra>(keys.ordenes.all, "/api/OrdenesCompra");
+// ---- Remisiones ----
+export function useRemisiones() {
+  return useList<Remision>(keys.remisiones.all, "/api/Remisiones");
 }
-export function useOrdenCompraDetail(id: number) {
-  return useQuery<OrdenCompraDetail>({
-    queryKey: keys.ordenes.detail(id),
-    queryFn: () => apiFetch<OrdenCompraDetail>(`/api/OrdenesCompra/${id}`),
+export function useRemisionDetail(id: number) {
+  return useQuery<RemisionDetail>({
+    queryKey: keys.remisiones.detail(id),
+    queryFn: () => apiFetch<RemisionDetail>(`/api/Remisiones/${id}`),
     enabled: !!id,
   });
 }
-export function useCreateOrdenCompra() {
-  return useCreate<OrdenCompra>(keys.ordenes.all, "/api/OrdenesCompra");
+export function useCreateRemision() {
+  return useCreate<Remision>(keys.remisiones.all, "/api/Remisiones");
 }
-export function useUpdateOrdenCompra() {
-  return useUpdate<OrdenCompra>(keys.ordenes.all, "/api/OrdenesCompra");
+export function useUpdateRemision() {
+  return useUpdate<Remision>(keys.remisiones.all, "/api/Remisiones");
 }
-export function useDeleteOrdenCompra() {
-  return useDelete(keys.ordenes.all, "/api/OrdenesCompra");
+export function useDeleteRemision() {
+  return useDelete(keys.remisiones.all, "/api/Remisiones");
 }
 export function useConfirmarIngreso() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      apiFetch<Activo[]>(`/api/OrdenesCompra/${id}/confirmar`, {
+      apiFetch<Activo[]>(`/api/Remisiones/${id}/confirmar`, {
         method: "POST",
         body: JSON.stringify({}),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: keys.ordenes.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.remisiones.all as unknown as string[] });
       qc.invalidateQueries({ queryKey: keys.activos.all as unknown as string[] });
-      qc.invalidateQueries({ queryKey: keys.itemsOC.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.itemsRemision.all as unknown as string[] });
     },
   });
 }
 
-// ---- Items de OC ----
-export function useItemsOCPorOrden(idOrden: number) {
-  return useQuery<ItemOC[]>({
-    queryKey: keys.itemsOC.porOrden(idOrden),
-    queryFn: () => apiFetch<ItemOC[]>(`/api/ItemsOC/orden/${idOrden}`),
-    enabled: !!idOrden,
+// ---- Items de remisión ----
+export function useItemsRemisionPorRemision(idRemision: number) {
+  return useQuery<ItemRemision[]>({
+    queryKey: keys.itemsRemision.porRemision(idRemision),
+    queryFn: () => apiFetch<ItemRemision[]>(`/api/ItemsRemision/remision/${idRemision}`),
+    enabled: !!idRemision,
   });
 }
-export function useCreateItemOC() {
+export function useCreateItemRemision() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: Partial<ItemOC>) =>
-      apiFetch<ItemOC>("/api/ItemsOC", { method: "POST", body: JSON.stringify(data) }),
+    mutationFn: (data: Partial<ItemRemision>) =>
+      apiFetch<ItemRemision>("/api/ItemsRemision", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: keys.itemsOC.all as unknown as string[] });
-      qc.invalidateQueries({ queryKey: keys.ordenes.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.itemsRemision.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.remisiones.all as unknown as string[] });
     },
   });
 }
-export function useDeleteItemOC() {
+export function useDeleteItemRemision() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => apiFetch<void>(`/api/ItemsOC/${id}`, { method: "DELETE" }),
+    mutationFn: (id: number) =>
+      apiFetch<void>(`/api/ItemsRemision/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: keys.itemsOC.all as unknown as string[] });
-      qc.invalidateQueries({ queryKey: keys.ordenes.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.itemsRemision.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.remisiones.all as unknown as string[] });
     },
   });
 }
 
-// ---- Detalles de Item OC ----
-export function useDetallesItemOCPorItem(idItemOC: number) {
-  return useQuery<DetalleItemOC[]>({
-    queryKey: keys.detallesItemOC.porItem(idItemOC),
-    queryFn: () => apiFetch<DetalleItemOC[]>(`/api/DetallesItemOC/item/${idItemOC}`),
-    enabled: !!idItemOC,
+// ---- Detalles de ItemRemision ----
+export function useDetallesItemRemisionPorItem(idItemRemision: number) {
+  return useQuery<DetalleItemRemision[]>({
+    queryKey: keys.detallesItemRemision.porItem(idItemRemision),
+    queryFn: () =>
+      apiFetch<DetalleItemRemision[]>(`/api/DetallesItemRemision/item/${idItemRemision}`),
+    enabled: !!idItemRemision,
   });
 }
-export function useCreateDetalleItemOC() {
+export function useCreateDetalleItemRemision() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: Partial<DetalleItemOC>) =>
-      apiFetch<DetalleItemOC>("/api/DetallesItemOC", {
+    mutationFn: (data: Partial<DetalleItemRemision>) =>
+      apiFetch<DetalleItemRemision>("/api/DetallesItemRemision", {
         method: "POST",
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: keys.detallesItemOC.all as unknown as string[] });
-      qc.invalidateQueries({ queryKey: keys.itemsOC.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.detallesItemRemision.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.itemsRemision.all as unknown as string[] });
     },
   });
 }
-export function useCreateDetalleItemOCBatch() {
+export function useCreateDetalleItemRemisionBatch() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { idItemOC: number; seriales: string[] }) =>
-      apiFetch<DetalleItemOC[]>("/api/DetallesItemOC/batch", {
+    mutationFn: (data: { idItemRemision: number; seriales: string[] }) =>
+      apiFetch<DetalleItemRemision[]>("/api/DetallesItemRemision/batch", {
         method: "POST",
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: keys.detallesItemOC.all as unknown as string[] });
-      qc.invalidateQueries({ queryKey: keys.itemsOC.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.detallesItemRemision.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.itemsRemision.all as unknown as string[] });
     },
   });
 }
-export function useDeleteDetalleItemOC() {
+export function useDeleteDetalleItemRemision() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => apiFetch<void>(`/api/DetallesItemOC/${id}`, { method: "DELETE" }),
+    mutationFn: (id: number) =>
+      apiFetch<void>(`/api/DetallesItemRemision/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: keys.detallesItemOC.all as unknown as string[] });
-      qc.invalidateQueries({ queryKey: keys.itemsOC.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.detallesItemRemision.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.itemsRemision.all as unknown as string[] });
     },
   });
 }
@@ -537,10 +543,9 @@ export const REPORTE_COLUMNAS: { key: string; label: string }[] = [
   { key: "estado", label: "Estado" },
   { key: "fechaAdquisicion", label: "Fecha adquisición" },
   { key: "fechaBaja", label: "Fecha baja" },
-  { key: "numeroOC", label: "N° orden de compra" },
+  { key: "numeroRemision", label: "N° remisión" },
   { key: "proveedor", label: "Proveedor" },
   { key: "fechaCompra", label: "Fecha compra" },
-  { key: "costo", label: "Costo" },
   { key: "responsable", label: "Responsable" },
   { key: "area", label: "Área" },
   { key: "sede", label: "Sede" },
