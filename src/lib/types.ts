@@ -178,6 +178,16 @@ export interface AsignacionUsuario {
   estadoAsignacion: EstadoAsignacion;
   fechaModificacion?: string | null;
   motivoEdicion?: string | null;
+  formaEntregaDevolucion?: string | null;
+  estadoDevolucion?: string | null;
+  observacionDevolucion?: string | null;
+}
+
+export interface DevolucionAsignacion {
+  motivoEdicion: string;
+  formaEntregaDevolucion: string;
+  estadoDevolucion: string;
+  observacionDevolucion?: string;
 }
 
 export interface Movimiento {

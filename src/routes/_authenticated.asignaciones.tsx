@@ -73,6 +73,7 @@ import {
   useAsignaciones,
   useCreateAsignacion,
   useUpdateAsignacion,
+  useDevolverAsignacion,
   useUpdateActivo,
   useUsuarios,
   useActivos,
@@ -100,6 +101,21 @@ const DEVOLUCION_MOTIVOS = [
   "Devolución voluntaria",
   "Devolución por baja del activo",
   "Otros",
+] as const;
+
+const DEVOLUCION_FORMAS = [
+  "Entregado",
+  "Entregado a bodega",
+  "Enviado por mensajería/correo",
+  "Pendiente de entrega",
+  "Otro",
+] as const;
+
+const DEVOLUCION_ESTADOS = [
+  "En buen estado",
+  "Dañado",
+  "Incompleto/faltante",
+  "Otro",
 ] as const;
 
 interface AsignacionGroup {
@@ -216,6 +232,7 @@ function Page() {
   const { data: canales } = useCanales();
   const createMutation = useCreateAsignacion();
   const updateMutation = useUpdateAsignacion();
+  const devolverMutation = useDevolverAsignacion();
   const updateActivo = useUpdateActivo();
   const generarActa = useGenerarActa();
   const enviarActa = useEnviarActa();
@@ -248,9 +265,15 @@ function Page() {
   const [viewGroup, setViewGroup] = useState<AsignacionGroup | null>(null);
   const [actaGroup, setActaGroup] = useState<AsignacionGroup | null>(null);
   const [returnGroup, setReturnGroup] = useState<AsignacionGroup | null>(null);
-  const [returnMotivo, setReturnMotivo] = useState("");
   const [returningId, setReturningId] = useState<number | null>(null);
   const [returnActive, setReturnActive] = useState<AsignacionUsuario[]>([]);
+  const [returnConfirmTarget, setReturnConfirmTarget] = useState<AsignacionUsuario | null>(null);
+  const [returnConfirmForm, setReturnConfirmForm] = useState({
+    motivo: "",
+    forma: "",
+    estado: "",
+    observacion: "",
+  });
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<Record<string, unknown>>({});
@@ -456,34 +479,57 @@ function Page() {
 
   const openReturn = useCallback((group: AsignacionGroup) => {
     setReturnGroup(group);
-    setReturnMotivo("");
     setReturnActive(group.asignaciones.filter((a) => a.estadoAsignacion === "Activa"));
     setReturningId(null);
   }, []);
 
-  const handleReturn = useCallback(
-    async (asignacion: AsignacionUsuario) => {
-      if (!returnMotivo.trim()) {
-        toast.error("Debes indicar el motivo de la devolución");
-        return;
-      }
-      setReturningId(asignacion.idAsignacion);
-      try {
-        await updateMutation.mutateAsync({
-          id: asignacion.idAsignacion,
-          data: { estadoAsignacion: "Finalizada", motivoEdicion: returnMotivo },
-        });
-        toast.success(`Devolución de ${asignacion.serial ?? "activo"} confirmada`);
-        setReturnActive((prev) => prev.filter((a) => a.idAsignacion !== asignacion.idAsignacion));
-        await syncActivoEstado(asignacion.idActivo, "Disponible");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Error al devolver el activo");
-      } finally {
-        setReturningId(null);
-      }
-    },
-    [returnMotivo, updateMutation, syncActivoEstado],
-  );
+  const openReturnConfirm = useCallback((asignacion: AsignacionUsuario) => {
+    setReturnConfirmTarget(asignacion);
+    setReturnConfirmForm({
+      motivo: "",
+      forma: "",
+      estado: "",
+      observacion: "",
+    });
+  }, []);
+
+  const confirmarDevolucion = useCallback(async () => {
+    const asignacion = returnConfirmTarget;
+    if (!asignacion) return;
+    const f = returnConfirmForm;
+    if (!f.motivo.trim()) {
+      toast.error("Debes indicar el motivo de la devolución");
+      return;
+    }
+    if (!f.forma) {
+      toast.error("Debes indicar la forma de entrega de la devolución");
+      return;
+    }
+    if (!f.estado) {
+      toast.error("Debes indicar el estado del activo devuelto");
+      return;
+    }
+    setReturningId(asignacion.idAsignacion);
+    try {
+      await devolverMutation.mutateAsync({
+        id: asignacion.idAsignacion,
+        data: {
+          motivoEdicion: f.motivo.trim(),
+          formaEntregaDevolucion: f.forma,
+          estadoDevolucion: f.estado,
+          observacionDevolucion: f.observacion.trim() || undefined,
+        },
+      });
+      toast.success(`Devolución de ${asignacion.serial ?? "activo"} confirmada`);
+      setReturnActive((prev) => prev.filter((a) => a.idAsignacion !== asignacion.idAsignacion));
+      setReturnConfirmTarget(null);
+      await syncActivoEstado(asignacion.idActivo, "Disponible");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al devolver el activo");
+    } finally {
+      setReturningId(null);
+    }
+  }, [returnConfirmTarget, returnConfirmForm, devolverMutation, syncActivoEstado]);
 
   const handleReassign = useCallback(async () => {
     if (!reassignSource || !reassignMotivo.trim()) {
@@ -1223,6 +1269,46 @@ function Page() {
                         </div>
                       )}
                     </div>
+                    {a.estadoAsignacion === "Finalizada" &&
+                      (a.formaEntregaDevolucion || a.estadoDevolucion || a.motivoEdicion) && (
+                        <div className="mt-3 pt-3 border-t space-y-2">
+                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                            Devolución
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-sm">
+                            {a.motivoEdicion && (
+                              <div>
+                                <span className="text-xs text-muted-foreground block">Motivo</span>
+                                <span className="font-medium">{a.motivoEdicion}</span>
+                              </div>
+                            )}
+                            {a.formaEntregaDevolucion && (
+                              <div>
+                                <span className="text-xs text-muted-foreground block">
+                                  Forma de entrega
+                                </span>
+                                <span className="font-medium">{a.formaEntregaDevolucion}</span>
+                              </div>
+                            )}
+                            {a.estadoDevolucion && (
+                              <div>
+                                <span className="text-xs text-muted-foreground block">
+                                  Estado del activo
+                                </span>
+                                <span className="font-medium">{a.estadoDevolucion}</span>
+                              </div>
+                            )}
+                          </div>
+                          {a.observacionDevolucion && (
+                            <div>
+                              <span className="text-xs text-muted-foreground block">
+                                Observación
+                              </span>
+                              <span className="font-medium text-sm">{a.observacionDevolucion}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                   </Card>
                 );
               })}
@@ -1318,24 +1404,6 @@ function Page() {
           </DialogHeader>
           {returnGroup && (
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="returnMotivo">
-                  Motivo <span className="text-destructive"> *</span>
-                </Label>
-                <Select value={returnMotivo || undefined} onValueChange={setReturnMotivo}>
-                  <SelectTrigger id="returnMotivo">
-                    <SelectValue placeholder="Selecciona el motivo de la devolución..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DEVOLUCION_MOTIVOS.map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {m}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               {returnActive.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   No hay activos activos pendientes de devolución.
@@ -1394,7 +1462,7 @@ function Page() {
                                     size="sm"
                                     variant={esParqueadero ? "secondary" : "destructive"}
                                     disabled={returningId === a.idAsignacion}
-                                    onClick={() => handleReturn(a)}
+                                    onClick={() => openReturnConfirm(a)}
                                   >
                                     {returningId === a.idAsignacion ? (
                                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1450,7 +1518,7 @@ function Page() {
                               variant={esParqueadero ? "secondary" : "destructive"}
                               className="flex-1 h-8 text-xs"
                               disabled={returningId === a.idAsignacion}
-                              onClick={() => handleReturn(a)}
+                              onClick={() => openReturnConfirm(a)}
                             >
                               {returningId === a.idAsignacion ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1471,6 +1539,123 @@ function Page() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setReturnGroup(null)}>
               Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmar devolución (por activo) */}
+      <Dialog
+        open={!!returnConfirmTarget}
+        onOpenChange={(o) => !o && setReturnConfirmTarget(null)}
+      >
+        <DialogContent className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Confirmar devolución</DialogTitle>
+            <DialogDescription>
+              {returnConfirmTarget && (
+                <>
+                  Serial: <strong>{returnConfirmTarget.serial ?? "—"}</strong> &middot; Código:{" "}
+                  <strong>{returnConfirmTarget.codigoActivo ?? "—"}</strong>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="rcMotivo">
+                Motivo <span className="text-destructive"> *</span>
+              </Label>
+              <Select
+                value={returnConfirmForm.motivo || undefined}
+                onValueChange={(v) => setReturnConfirmForm((s) => ({ ...s, motivo: v }))}
+              >
+                <SelectTrigger id="rcMotivo">
+                  <SelectValue placeholder="Selecciona el motivo de la devolución..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {DEVOLUCION_MOTIVOS.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rcForma">
+                Forma de entrega <span className="text-destructive"> *</span>
+              </Label>
+              <Select
+                value={returnConfirmForm.forma || undefined}
+                onValueChange={(v) => setReturnConfirmForm((s) => ({ ...s, forma: v }))}
+              >
+                <SelectTrigger id="rcForma">
+                  <SelectValue placeholder="¿Cómo se devuelve el activo?" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DEVOLUCION_FORMAS.map((f) => (
+                    <SelectItem key={f} value={f}>
+                      {f}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rcEstado">
+                Estado del activo <span className="text-destructive"> *</span>
+              </Label>
+              <Select
+                value={returnConfirmForm.estado || undefined}
+                onValueChange={(v) => setReturnConfirmForm((s) => ({ ...s, estado: v }))}
+              >
+                <SelectTrigger id="rcEstado">
+                  <SelectValue placeholder="¿En qué estado se devuelve?" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DEVOLUCION_ESTADOS.map((e) => (
+                    <SelectItem key={e} value={e}>
+                      {e}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rcObservacion">Observación</Label>
+              <Textarea
+                id="rcObservacion"
+                value={returnConfirmForm.observacion}
+                onChange={(e) =>
+                  setReturnConfirmForm((s) => ({ ...s, observacion: e.target.value }))
+                }
+                placeholder="Detalle adicional (opcional)..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setReturnConfirmTarget(null)}
+              disabled={returningId !== null}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={returningId !== null || !returnConfirmForm.forma || !returnConfirmForm.estado}
+              onClick={confirmarDevolucion}
+            >
+              {returningId !== null ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Undo2 className="h-4 w-4 mr-1" />
+              )}
+              Confirmar devolución
             </Button>
           </DialogFooter>
         </DialogContent>

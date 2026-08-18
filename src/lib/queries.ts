@@ -32,6 +32,7 @@ import type {
   ReporteInventarioRequest,
   ReportePreviewResponse,
   DocumentoRemision,
+  DevolucionAsignacion,
 } from "./types";
 
 // ---- Query key factories ----
@@ -436,6 +437,22 @@ export function useAsignacionesPorActivo(idActivo: number | null) {
     queryKey: [...keys.asignaciones.all, "activo", idActivo] as string[],
     queryFn: () => apiFetch<AsignacionUsuario[]>(`/api/AsignacionesUsuario/activo/${idActivo}`),
     enabled: !!idActivo,
+  });
+}
+
+export function useDevolverAsignacion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: DevolucionAsignacion }) =>
+      apiFetch<AsignacionUsuario>(`/api/AsignacionesUsuario/${id}/devolver`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.asignaciones.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.activos.all as unknown as string[] });
+      qc.invalidateQueries({ queryKey: keys.movimientos.all as unknown as string[] });
+    },
   });
 }
 
