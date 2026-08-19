@@ -71,8 +71,16 @@ export type FieldDef =
       type: "text" | "email" | "number" | "date" | "password";
       required?: boolean;
       placeholder?: string;
+      maxLength?: number;
     }
-  | { key: string; label: string; type: "textarea"; required?: boolean; placeholder?: string }
+  | {
+      key: string;
+      label: string;
+      type: "textarea";
+      required?: boolean;
+      placeholder?: string;
+      maxLength?: number;
+    }
   | {
       key: string;
       label: string;
@@ -541,6 +549,7 @@ export function ResourcePage<T>({
                         value={String(form[f.key] ?? "")}
                         onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
                         placeholder={f.placeholder}
+                        maxLength={f.maxLength}
                         rows={3}
                       />
                     ) : f.type === "select" ? (
@@ -578,6 +587,7 @@ export function ResourcePage<T>({
                           }))
                         }
                         placeholder={f.placeholder}
+                        maxLength={f.maxLength}
                       />
                     )}
                   </div>

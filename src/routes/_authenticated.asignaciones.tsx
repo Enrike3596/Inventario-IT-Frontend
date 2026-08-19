@@ -111,12 +111,7 @@ const DEVOLUCION_FORMAS = [
   "Otro",
 ] as const;
 
-const DEVOLUCION_ESTADOS = [
-  "En buen estado",
-  "Dañado",
-  "Incompleto/faltante",
-  "Otro",
-] as const;
+const DEVOLUCION_ESTADOS = ["En buen estado", "Dañado", "Incompleto/faltante", "Otro"] as const;
 
 interface AsignacionGroup {
   key: string;
@@ -577,6 +572,7 @@ function Page() {
     reassignMotivo,
     reassignTipo,
     reassignDestino,
+    reassignUsuarioDestino,
     updateMutation,
     createMutation,
     syncActivoEstado,
@@ -1546,10 +1542,7 @@ function Page() {
       </Dialog>
 
       {/* Confirmar devolución (por activo) */}
-      <Dialog
-        open={!!returnConfirmTarget}
-        onOpenChange={(o) => !o && setReturnConfirmTarget(null)}
-      >
+      <Dialog open={!!returnConfirmTarget} onOpenChange={(o) => !o && setReturnConfirmTarget(null)}>
         <DialogContent className="w-full max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Confirmar devolución</DialogTitle>
@@ -1648,7 +1641,9 @@ function Page() {
             <Button
               type="button"
               variant="destructive"
-              disabled={returningId !== null || !returnConfirmForm.forma || !returnConfirmForm.estado}
+              disabled={
+                returningId !== null || !returnConfirmForm.forma || !returnConfirmForm.estado
+              }
               onClick={confirmarDevolucion}
             >
               {returningId !== null ? (
