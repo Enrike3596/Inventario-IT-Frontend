@@ -178,6 +178,7 @@ export interface DevolucionAsignacion {
   formaEntregaDevolucion: string;
   estadoDevolucion: string;
   observacionDevolucion?: string;
+  idUsuarioRecibe?: number;
 }
 
 export interface Movimiento {
@@ -199,6 +200,8 @@ export interface Movimiento {
   nombreCanal?: string;
   estadoAnterior?: string;
   estadoNuevo?: string;
+  motivo?: string;
+  estadoDevolucion?: string;
   fechaCreacion: string;
   fechaModificacion?: string | null;
   creadoPor?: number;

@@ -236,7 +236,7 @@ function Page() {
   const updateActivo = useUpdateActivo();
   const generarActa = useGenerarActa();
   const enviarActa = useEnviarActa();
-  const { can } = useAuth();
+  const { can, user } = useAuth();
 
   const canCreate = can("create", "asignaciones");
   const canEdit = can("edit", "asignaciones");
@@ -518,6 +518,7 @@ function Page() {
           formaEntregaDevolucion: f.forma,
           estadoDevolucion: f.estado,
           observacionDevolucion: f.observacion.trim() || undefined,
+          idUsuarioRecibe: user?.idUsuario,
         },
       });
       toast.success(`Devolución de ${asignacion.serial ?? "activo"} confirmada`);
@@ -529,7 +530,7 @@ function Page() {
     } finally {
       setReturningId(null);
     }
-  }, [returnConfirmTarget, returnConfirmForm, devolverMutation, syncActivoEstado]);
+  }, [returnConfirmTarget, returnConfirmForm, devolverMutation, syncActivoEstado, user]);
 
   const handleReassign = useCallback(async () => {
     if (!reassignSource || !reassignMotivo.trim()) {

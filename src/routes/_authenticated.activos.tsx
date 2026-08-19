@@ -151,6 +151,8 @@ function renderMovimientoDesc(m: Movimiento): React.ReactNode {
         <span>
           {m.nombreUsuarioAsignado ? `Devuelto por ${m.nombreUsuarioAsignado}` : "Devuelto"}
           {m.nombreUsuarioEntrega ? ` (recibido por ${m.nombreUsuarioEntrega})` : ""}
+          {m.motivo ? ` — Motivo: ${m.motivo}` : ""}
+          {m.estadoDevolucion ? ` — Estado devuelto: ${m.estadoDevolucion}` : ""}
           {m.estadoNuevo === "Disponible"
             ? " — el activo queda en Disponible"
             : m.estadoNuevo

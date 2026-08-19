@@ -171,9 +171,16 @@ function Page() {
                   : m.estadoNuevo
                     ? ` — queda en ${m.estadoNuevo}`
                     : "";
+              const recibido = m.nombreUsuarioEntrega
+                ? ` — recibido por ${m.nombreUsuarioEntrega}`
+                : "";
+              const motivo = m.motivo ? ` — Motivo: ${m.motivo}` : "";
+              const estadoDevuelto = m.estadoDevolucion
+                ? ` — Estado devuelto: ${m.estadoDevolucion}`
+                : "";
               return m.nombreUsuarioAsignado
-                ? `Devuelto por ${m.nombreUsuarioAsignado}${resto}`
-                : `Devuelto${resto}`;
+                ? `Devuelto por ${m.nombreUsuarioAsignado}${recibido}${motivo}${estadoDevuelto}${resto}`
+                : `Devuelto${recibido}${motivo}${estadoDevuelto}${resto}`;
             }
             if (m.tipoMovimiento === "Salida" && m.codigoSalida)
               return `Salida ${m.codigoSalida}${m.observaciones ? ` — ${m.observaciones}` : ""}`;
