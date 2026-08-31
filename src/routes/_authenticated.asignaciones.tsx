@@ -78,7 +78,6 @@ import {
   useUsuarios,
   useActivos,
   useParqueaderos,
-  useCanales,
   useGenerarActa,
   useEnviarActa,
   useActaPorDestino,
@@ -224,7 +223,6 @@ function Page() {
   const { data: roles } = useRoles();
   const { data: activos } = useActivos();
   const { data: parqueaderos } = useParqueaderos();
-  const { data: canales } = useCanales();
   const createMutation = useCreateAsignacion();
   const updateMutation = useUpdateAsignacion();
   const devolverMutation = useDevolverAsignacion();
@@ -312,10 +310,9 @@ function Page() {
   );
 
   const esSistemaTicket = useMemo(() => {
-    if (!createForm.idCanal || !canales) return false;
-    const selected = canales.find((c) => c.idCanal === Number(createForm.idCanal));
-    return selected?.nombre === "Sistema de Tickets";
-  }, [createForm.idCanal, canales]);
+    if (!createForm.idCanal) return false;
+    return String(createForm.idCanal) === "2";
+  }, [createForm.idCanal]);
 
   const groups = useMemo(() => {
     const map = new Map<string, AsignacionUsuario[]>();
@@ -424,8 +421,6 @@ function Page() {
   const handleCreateSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      const selectedCanal = canales?.find((c) => c.idCanal === Number(createForm.idCanal));
-      const esSistemaTicket = selectedCanal?.nombre === "Sistema de Tickets";
       const required = [
         "idActivo",
         "idUsuarioDestino",
@@ -469,7 +464,7 @@ function Page() {
         setCreateSubmitting(false);
       }
     },
-    [createForm, createMutation, canales, asignacionTipo, syncActivoEstado],
+    [createForm, createMutation, asignacionTipo, syncActivoEstado],
   );
 
   const openReturn = useCallback((group: AsignacionGroup) => {
@@ -1062,12 +1057,10 @@ function Page() {
                 <Select
                   value={createForm.idCanal !== "" ? String(createForm.idCanal) : undefined}
                   onValueChange={(v) => {
-                    const isTicket =
-                      canales?.find((c) => c.idCanal === Number(v))?.nombre ===
-                      "Sistema de Tickets";
+                    const isTicket = v === "2";
                     setCreateForm((s) => ({
                       ...s,
-                      idCanal: Number(v),
+                      idCanal: v,
                       numeroTicket: isTicket ? s.numeroTicket : "",
                     }));
                   }}
@@ -1076,11 +1069,8 @@ function Page() {
                     <SelectValue placeholder="Selecciona..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {(canales ?? []).map((c) => (
-                      <SelectItem key={c.idCanal} value={String(c.idCanal)}>
-                        {c.nombre}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="1">Correo Electrónico</SelectItem>
+                    <SelectItem value="2">Sistema de Tickets</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

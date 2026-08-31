@@ -118,10 +118,11 @@ export interface Activo {
   observaciones: string;
 }
 
+export type TipoCanal = "CorreoElectronico" | "SistemaDeTickets";
+
 export interface Canal {
   idCanal: number;
   nombre: string;
-  fechaSolicitud: string;
 }
 
 export interface SalidaActivo {
@@ -158,8 +159,7 @@ export interface AsignacionUsuario {
   nombreUsuarioDestino?: string;
   idParqueadero: number | null;
   nombreParqueadero?: string;
-  idCanal: number;
-  nombreCanal?: string;
+  Canal: TipoCanal;
   idUsuarioEntrega: number;
   nombreUsuarioEntrega?: string;
   registroSalida: string;
@@ -197,7 +197,7 @@ export interface Movimiento {
   idAsignacion?: number;
   nombreUsuarioAsignado?: string;
   registroSalidaAsignacion?: string;
-  nombreCanal?: string;
+  nombreCanal?: TipoCanal;
   estadoAnterior?: string;
   estadoNuevo?: string;
   motivo?: string;

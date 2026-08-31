@@ -18,7 +18,6 @@ import type {
   Activo,
   ItemRemision,
   DetalleItemRemision,
-  Canal,
   Salida,
   AsignacionUsuario,
   Movimiento,
@@ -53,7 +52,6 @@ export const keys = {
     porItem: (id: number) => ["detallesItemRemision", "item", id] as const,
   },
   activos: { all: ["activos"] as const },
-  canales: { all: ["canales"] as const },
   salidas: { all: ["salidas"] as const },
   asignaciones: { all: ["asignaciones"] as const },
   movimientos: { all: ["movimientos"] as const },
@@ -329,20 +327,6 @@ export function useRegistrarRegresoReparacion() {
       qc.invalidateQueries({ queryKey: keys.salidas.all as unknown as string[] });
     },
   });
-}
-
-// ---- Canales ----
-export function useCanales() {
-  return useList<Canal>(keys.canales.all, "/api/Canales");
-}
-export function useCreateCanal() {
-  return useCreate<Canal>(keys.canales.all, "/api/Canales");
-}
-export function useUpdateCanal() {
-  return useUpdate<Canal>(keys.canales.all, "/api/Canales");
-}
-export function useDeleteCanal() {
-  return useDelete(keys.canales.all, "/api/Canales");
 }
 
 // ---- Salidas ----

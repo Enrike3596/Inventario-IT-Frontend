@@ -7,7 +7,6 @@ import {
   useUsuarios,
   useAsignaciones,
   useMovimientos,
-  useCanales,
 } from "@/lib/queries";
 import type { Activo } from "@/lib/types";
 
@@ -21,7 +20,6 @@ function Dashboard() {
   const { data: usuarios } = useUsuarios();
   const { data: asignaciones } = useAsignaciones();
   const { data: movimientos } = useMovimientos();
-  const { data: canales } = useCanales();
 
   const activoAsignadoIds = useMemo(
     () =>
@@ -81,14 +79,11 @@ function Dashboard() {
   const asignacionesPorCanal = useMemo(() => {
     const map: Record<string, number> = {};
     for (const a of asignaciones ?? []) {
-      const canal = a.nombreCanal ?? "Sin canal";
+      const canal = a.Canal ?? "Sin canal";
       map[canal] = (map[canal] ?? 0) + 1;
     }
-    for (const c of canales ?? []) {
-      if (!(c.nombre in map)) map[c.nombre] = 0;
-    }
     return map;
-  }, [asignaciones, canales]);
+  }, [asignaciones]);
 
   const canalesList = useMemo(
     () =>
@@ -216,7 +211,7 @@ function Dashboard() {
               <Hash className="h-5 w-5 text-primary" />
               <h2 className="font-display text-lg font-semibold">Canal con más asignaciones</h2>
             </div>
-            {!topCanal && (canales ?? []).length === 0 ? (
+            {!topCanal ? (
               <p className="text-sm text-muted-foreground">Sin canales registrados.</p>
             ) : (
               <div className="flex flex-col items-center justify-center py-6">

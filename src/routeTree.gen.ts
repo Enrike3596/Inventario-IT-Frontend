@@ -24,7 +24,6 @@ import { Route as AuthenticatedMovimientosRouteImport } from './routes/_authenti
 import { Route as AuthenticatedInformesRouteImport } from './routes/_authenticated.informes'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedCategoriasRouteImport } from './routes/_authenticated.categorias'
-import { Route as AuthenticatedCanalesRouteImport } from './routes/_authenticated.canales'
 import { Route as AuthenticatedAsignacionesRouteImport } from './routes/_authenticated.asignaciones'
 import { Route as AuthenticatedAreasRouteImport } from './routes/_authenticated.areas'
 import { Route as AuthenticatedActivosRouteImport } from './routes/_authenticated.activos'
@@ -105,11 +104,6 @@ const AuthenticatedCategoriasRoute = AuthenticatedCategoriasRouteImport.update({
   path: '/categorias',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedCanalesRoute = AuthenticatedCanalesRouteImport.update({
-  id: '/canales',
-  path: '/canales',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedAsignacionesRoute =
   AuthenticatedAsignacionesRouteImport.update({
     id: '/asignaciones',
@@ -135,7 +129,6 @@ export interface FileRoutesByFullPath {
   '/activos': typeof AuthenticatedActivosRoute
   '/areas': typeof AuthenticatedAreasRoute
   '/asignaciones': typeof AuthenticatedAsignacionesRoute
-  '/canales': typeof AuthenticatedCanalesRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/informes': typeof AuthenticatedInformesRoute
@@ -155,7 +148,6 @@ export interface FileRoutesByTo {
   '/activos': typeof AuthenticatedActivosRoute
   '/areas': typeof AuthenticatedAreasRoute
   '/asignaciones': typeof AuthenticatedAsignacionesRoute
-  '/canales': typeof AuthenticatedCanalesRoute
   '/categorias': typeof AuthenticatedCategoriasRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/informes': typeof AuthenticatedInformesRoute
@@ -177,7 +169,6 @@ export interface FileRoutesById {
   '/_authenticated/activos': typeof AuthenticatedActivosRoute
   '/_authenticated/areas': typeof AuthenticatedAreasRoute
   '/_authenticated/asignaciones': typeof AuthenticatedAsignacionesRoute
-  '/_authenticated/canales': typeof AuthenticatedCanalesRoute
   '/_authenticated/categorias': typeof AuthenticatedCategoriasRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/informes': typeof AuthenticatedInformesRoute
@@ -199,7 +190,6 @@ export interface FileRouteTypes {
     | '/activos'
     | '/areas'
     | '/asignaciones'
-    | '/canales'
     | '/categorias'
     | '/dashboard'
     | '/informes'
@@ -219,7 +209,6 @@ export interface FileRouteTypes {
     | '/activos'
     | '/areas'
     | '/asignaciones'
-    | '/canales'
     | '/categorias'
     | '/dashboard'
     | '/informes'
@@ -240,7 +229,6 @@ export interface FileRouteTypes {
     | '/_authenticated/activos'
     | '/_authenticated/areas'
     | '/_authenticated/asignaciones'
-    | '/_authenticated/canales'
     | '/_authenticated/categorias'
     | '/_authenticated/dashboard'
     | '/_authenticated/informes'
@@ -369,13 +357,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCategoriasRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/canales': {
-      id: '/_authenticated/canales'
-      path: '/canales'
-      fullPath: '/canales'
-      preLoaderRoute: typeof AuthenticatedCanalesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/asignaciones': {
       id: '/_authenticated/asignaciones'
       path: '/asignaciones'
@@ -404,7 +385,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedActivosRoute: typeof AuthenticatedActivosRoute
   AuthenticatedAreasRoute: typeof AuthenticatedAreasRoute
   AuthenticatedAsignacionesRoute: typeof AuthenticatedAsignacionesRoute
-  AuthenticatedCanalesRoute: typeof AuthenticatedCanalesRoute
   AuthenticatedCategoriasRoute: typeof AuthenticatedCategoriasRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedInformesRoute: typeof AuthenticatedInformesRoute
@@ -420,7 +400,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedActivosRoute: AuthenticatedActivosRoute,
   AuthenticatedAreasRoute: AuthenticatedAreasRoute,
   AuthenticatedAsignacionesRoute: AuthenticatedAsignacionesRoute,
-  AuthenticatedCanalesRoute: AuthenticatedCanalesRoute,
   AuthenticatedCategoriasRoute: AuthenticatedCategoriasRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedInformesRoute: AuthenticatedInformesRoute,

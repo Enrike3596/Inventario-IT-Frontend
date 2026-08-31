@@ -53,8 +53,6 @@ const operacion: Item[] = [
   { title: "Asignaciones", url: "/asignaciones", icon: Boxes },
   { title: "Salidas", url: "/salidas", icon: Truck },
   { title: "Movimientos", url: "/movimientos", icon: Activity },
-  { title: "Canales", url: "/canales", icon: Radio, roles: ["super_admin", "coordinador"] },
-  { title: "Informes", url: "/informes", icon: FileBarChart },
 ];
 
 const organizacion: Item[] = [
