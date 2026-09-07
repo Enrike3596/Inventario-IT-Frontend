@@ -68,6 +68,7 @@ import {
   FileText,
   Trash2,
   X,
+  Edit,
 } from "lucide-react";
 import {
   useAsignaciones,
@@ -268,10 +269,19 @@ function Page() {
     observacion: "",
   });
 
+  const [editGroup, setEditGroup] = useState<AsignacionGroup | null>(null);
+  const [editGroupTarget, setEditGroupTarget] = useState<AsignacionUsuario | null>(null);
+
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<Record<string, unknown>>({});
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [asignacionTipo, setAsignacionTipo] = useState<"Usuario" | "Parqueadero">("Usuario");
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingAsignacion, setEditingAsignacion] = useState<AsignacionUsuario | null>(null);
+  const [editForm, setEditForm] = useState<Record<string, unknown>>({});
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editAsignacionTipo, setEditAsignacionTipo] = useState<"Usuario" | "Parqueadero">("Usuario");
 
   const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
   const [reassignSource, setReassignSource] = useState<AsignacionUsuario | null>(null);
@@ -467,10 +477,97 @@ function Page() {
     [createForm, createMutation, asignacionTipo, syncActivoEstado],
   );
 
+  const openEdit = useCallback((asignacion: AsignacionUsuario) => {
+    setEditingAsignacion(asignacion);
+    const initial: Record<string, unknown> = {
+      idAsignacion: asignacion.idAsignacion,
+      idActivo: asignacion.idActivo,
+      idUsuarioDestino: asignacion.idUsuarioDestino ?? "",
+      idParqueadero: asignacion.idParqueadero ?? "",
+      idCanal: asignacion.idCanal,
+      idUsuarioEntrega: asignacion.idUsuarioEntrega,
+      registroSalida: asignacion.registroSalida,
+      numeroTicket: asignacion.numeroTicket ?? "",
+      estadoAsignacion: asignacion.estadoAsignacion,
+    };
+    setEditForm(initial);
+    setEditAsignacionTipo(asignacion.idParqueadero ? "Parqueadero" : "Usuario");
+    setEditOpen(true);
+  }, []);
+
+  const handleEditSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      const required = [
+        "idActivo",
+        "idUsuarioDestino",
+        "idCanal",
+        "idUsuarioEntrega",
+        "registroSalida",
+      ];
+      if (editAsignacionTipo === "Parqueadero") required.push("idParqueadero");
+      const esTicket = String(editForm.idCanal) === "2";
+      if (esTicket) required.push("numeroTicket");
+      for (const k of required) {
+        if (editForm[k] === "" || editForm[k] === undefined || editForm[k] === null) {
+          const labels: Record<string, string> = {
+            idUsuarioDestino: "Usuario destino",
+            idActivo: "Activo",
+            idCanal: "Canal",
+            idUsuarioEntrega: "Usuario entrega",
+            registroSalida: "Registro de salida",
+            numeroTicket: "N° Ticket",
+            idParqueadero: "Parqueadero destino",
+          };
+          toast.error(`${labels[k] ?? k} es obligatorio`);
+          return;
+        }
+      }
+      if (!editingAsignacion) return;
+      setEditSubmitting(true);
+      try {
+        const oldActivoId = editingAsignacion.idActivo;
+        const newActivoId = Number(editForm.idActivo);
+        const payload: Record<string, unknown> = {
+          ...editForm,
+          idUsuarioDestino: editForm.idUsuarioDestino,
+          idParqueadero: editAsignacionTipo === "Parqueadero" ? editForm.idParqueadero : null,
+        };
+        await updateMutation.mutateAsync({
+          id: editingAsignacion.idAsignacion,
+          data: payload as Partial<AsignacionUsuario>,
+        });
+        toast.success("Asignación actualizada");
+        setEditOpen(false);
+        setEditingAsignacion(null);
+        if (oldActivoId !== newActivoId) {
+          await syncActivoEstado(oldActivoId, "Disponible");
+          if (payload.estadoAsignacion === "Activa") {
+            await syncActivoEstado(newActivoId, "Asignado");
+          }
+        } else if (payload.estadoAsignacion === "Activa") {
+          await syncActivoEstado(newActivoId, "Asignado");
+        } else if (payload.estadoAsignacion === "Finalizada") {
+          await syncActivoEstado(newActivoId, "Disponible");
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Error al actualizar");
+      } finally {
+        setEditSubmitting(false);
+      }
+    },
+    [editForm, editAsignacionTipo, editingAsignacion, updateMutation, syncActivoEstado],
+  );
+
   const openReturn = useCallback((group: AsignacionGroup) => {
     setReturnGroup(group);
     setReturnActive(group.asignaciones.filter((a) => a.estadoAsignacion === "Activa"));
     setReturningId(null);
+  }, []);
+
+  const openEditGroup = useCallback((group: AsignacionGroup) => {
+    setEditGroup(group);
+    setEditGroupTarget(null);
   }, []);
 
   const openReturnConfirm = useCallback((asignacion: AsignacionUsuario) => {
@@ -772,14 +869,24 @@ function Page() {
                             <Eye className="h-4 w-4" />
                           </Button>
                           {canEdit && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => openReturn(g)}
-                              aria-label="Devolución"
-                            >
-                              <Undo2 className="h-4 w-4" />
-                            </Button>
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => openReturn(g)}
+                                aria-label="Devolución"
+                              >
+                                <Undo2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => openEditGroup(g)}
+                                aria-label="Editar asignación"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
                         </div>
                       </TableCell>
@@ -876,14 +983,24 @@ function Page() {
                     <Eye className="h-3.5 w-3.5 mr-1" /> Ver
                   </Button>
                   {canEdit && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 text-xs"
-                      onClick={() => openReturn(g)}
-                    >
-                      <Undo2 className="h-3.5 w-3.5 mr-1" /> Devolver
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 text-xs"
+                        onClick={() => openReturn(g)}
+                      >
+                        <Undo2 className="h-3.5 w-3.5 mr-1" /> Devolver
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 text-xs"
+                        onClick={() => openEditGroup(g)}
+                      >
+                        <Edit className="h-3.5 w-3.5 mr-1" /> Editar
+                      </Button>
+                    </>
                   )}
                 </div>
               </Card>
@@ -1161,6 +1278,227 @@ function Page() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit dialog */}
+      <Dialog open={editOpen} onOpenChange={(o) => !o && (setEditOpen(false), setEditingAsignacion(null))}>
+        <DialogContent className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar asignación</DialogTitle>
+            <DialogDescription>Modifica los datos de la asignación.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>
+                Tipo de asignación <span className="text-destructive"> *</span>
+              </Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={editAsignacionTipo === "Usuario" ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => {
+                    setEditAsignacionTipo("Usuario");
+                    setEditForm((s) => ({ ...s, idUsuarioDestino: "", idParqueadero: "" }));
+                  }}
+                >
+                  <UserRound className="h-4 w-4 mr-2" />
+                  Usuario
+                </Button>
+                <Button
+                  type="button"
+                  variant={editAsignacionTipo === "Parqueadero" ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => {
+                    setEditAsignacionTipo("Parqueadero");
+                    setEditForm((s) => ({ ...s, idUsuarioDestino: "", idParqueadero: "" }));
+                  }}
+                >
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Parqueadero
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="editIdUsuarioDestino">
+                  {editAsignacionTipo === "Usuario" ? "Usuario destino" : "Responsable"}
+                  <span className="text-destructive"> *</span>
+                </Label>
+                <Select
+                  value={
+                    editForm.idUsuarioDestino !== ""
+                      ? String(editForm.idUsuarioDestino)
+                      : undefined
+                  }
+                  onValueChange={(v) =>
+                    setEditForm((s) => ({ ...s, idUsuarioDestino: Number(v) }))
+                  }
+                >
+                  <SelectTrigger id="editIdUsuarioDestino">
+                    <SelectValue placeholder="Selecciona un usuario..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(usuarios ?? []).map((u) => (
+                      <SelectItem key={u.idUsuario} value={String(u.idUsuario)}>
+                        {u.nombre} — {u.cargo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {editAsignacionTipo === "Parqueadero" && (
+                <div className="space-y-2">
+                  <Label htmlFor="editIdParqueadero">
+                    Parqueadero destino <span className="text-destructive"> *</span>
+                  </Label>
+                  <Select
+                    value={
+                      editForm.idParqueadero !== "" ? String(editForm.idParqueadero) : undefined
+                    }
+                    onValueChange={(v) =>
+                      setEditForm((s) => ({ ...s, idParqueadero: Number(v) }))
+                    }
+                  >
+                    <SelectTrigger id="editIdParqueadero">
+                      <SelectValue placeholder="Selecciona un parqueadero..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(parqueaderos ?? []).map((p) => (
+                        <SelectItem key={p.idParqueadero} value={String(p.idParqueadero)}>
+                          {p.nombre} — {p.ubicacion}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="editIdActivo">
+                  Activo <span className="text-destructive"> *</span>
+                </Label>
+                <ActivoCombobox
+                  value={editForm.idActivo as number | undefined}
+                  onChange={(v) => setEditForm((s) => ({ ...s, idActivo: v }))}
+                  activosDisponibles={activosDisponibles}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editIdCanal">
+                  Canal <span className="text-destructive"> *</span>
+                </Label>
+                <Select
+                  value={editForm.idCanal !== "" ? String(editForm.idCanal) : undefined}
+                  onValueChange={(v) => {
+                    const isTicket = v === "2";
+                    setEditForm((s) => ({
+                      ...s,
+                      idCanal: v,
+                      numeroTicket: isTicket ? s.numeroTicket : "",
+                    }));
+                  }}
+                >
+                  <SelectTrigger id="editIdCanal">
+                    <SelectValue placeholder="Selecciona..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Correo Electrónico</SelectItem>
+                    <SelectItem value="2">Sistema de Tickets</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editIdUsuarioEntrega">
+                  Usuario entrega <span className="text-destructive"> *</span>
+                </Label>
+                <Select
+                  value={
+                    editForm.idUsuarioEntrega !== ""
+                      ? String(editForm.idUsuarioEntrega)
+                      : undefined
+                  }
+                  onValueChange={(v) =>
+                    setEditForm((s) => ({ ...s, idUsuarioEntrega: Number(v) }))
+                  }
+                >
+                  <SelectTrigger id="editIdUsuarioEntrega">
+                    <SelectValue placeholder="Selecciona..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(usuariosEntrega ?? []).map((u) => (
+                      <SelectItem key={u.idUsuario} value={String(u.idUsuario)}>
+                        {u.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editRegistroSalida">
+                  Registro de salida <span className="text-destructive"> *</span>
+                </Label>
+                <Input
+                  id="editRegistroSalida"
+                  value={String(editForm.registroSalida ?? "")}
+                  onChange={(e) => setEditForm((s) => ({ ...s, registroSalida: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editNumeroTicket">
+                  N° Ticket{esSistemaTicket && <span className="text-destructive"> *</span>}
+                </Label>
+                <Input
+                  id="editNumeroTicket"
+                  value={String(editForm.numeroTicket ?? "")}
+                  onChange={(e) => setEditForm((s) => ({ ...s, numeroTicket: e.target.value }))}
+                  disabled={!esSistemaTicket}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editEstadoAsignacion">
+                  Estado <span className="text-destructive"> *</span>
+                </Label>
+                <Select
+                  value={String(editForm.estadoAsignacion ?? "Activa")}
+                  onValueChange={(v) => setEditForm((s) => ({ ...s, estadoAsignacion: v }))}
+                >
+                  <SelectTrigger id="editEstadoAsignacion">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Activa">Activa</SelectItem>
+                    <SelectItem value="Finalizada">Finalizada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setEditOpen(false);
+                  setEditingAsignacion(null);
+                }}
+                disabled={editSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" variant="brand" disabled={editSubmitting}>
+                {editSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Guardar cambios
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* View details dialog */}
       <Dialog open={!!viewGroup} onOpenChange={(o) => !o && setViewGroup(null)}>
         <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -1214,6 +1552,20 @@ function Page() {
                           {a.codigoActivo ?? "—"}
                         </span>
                       </div>
+                      {canEdit && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            setViewGroup(null);
+                            setEditGroupTarget(a);
+                          }}
+                          aria-label="Editar asignación"
+                          title="Editar asignación"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-sm">
                       <div>
@@ -1642,6 +1994,136 @@ function Page() {
                 <Undo2 className="h-4 w-4 mr-1" />
               )}
               Confirmar devolución
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit group dialog (seleccionar asignación a editar) */}
+      <Dialog open={!!editGroup} onOpenChange={(o) => !o && (setEditGroup(null), setEditGroupTarget(null))}>
+        <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg">
+              {editGroup?.tipo === "Parqueadero"
+                ? "Editar asignación de activos"
+                : "Editar asignación de activos"}
+              — {editGroup?.nombre}
+            </DialogTitle>
+            <DialogDescription>
+              {editGroup?.tipo === "Parqueadero"
+                ? "Selecciona un activo para editar su asignación."
+                : "Selecciona la asignación que deseas editar."}
+            </DialogDescription>
+          </DialogHeader>
+          {editGroup && (
+            <div className="space-y-4">
+              {editGroup.asignaciones.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No hay asignaciones para editar.
+                </p>
+              ) : (
+                <>
+                  {/* Desktop: table view */}
+                  <div className="hidden sm:block overflow-x-auto border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          <TableHead>Serial</TableHead>
+                          <TableHead className="hidden md:table-cell">Código</TableHead>
+                          <TableHead className="hidden md:table-cell">Marca</TableHead>
+                          <TableHead className="hidden md:table-cell">Modelo</TableHead>
+                          <TableHead className="hidden md:table-cell">Estado</TableHead>
+                          <TableHead className="text-right">Acción</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {editGroup.asignaciones.map((a) => {
+                          const activo = activosMap.get(a.idActivo);
+                          return (
+                            <TableRow key={a.idAsignacion}>
+                              <TableCell className="font-medium">{a.serial ?? "—"}</TableCell>
+                              <TableCell className="hidden md:table-cell">
+                                {a.codigoActivo ?? "—"}
+                              </TableCell>
+                              <TableCell className="hidden md:table-cell">
+                                {activo?.marca ?? "—"}
+                              </TableCell>
+                              <TableCell className="hidden md:table-cell">
+                                {activo?.modelo ?? "—"}
+                              </TableCell>
+                              <TableCell className="hidden md:table-cell">
+                                <Badge
+                                  variant={a.estadoAsignacion === "Activa" ? "default" : "secondary"}
+                                  className="text-[10px] h-5"
+                                >
+                                  {a.estadoAsignacion}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditGroupTarget(a);
+                                    setEditGroup(null);
+                                  }}
+                                >
+                                  <Edit className="h-3.5 w-3.5 mr-1" />
+                                  Editar
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile: card view */}
+                  <div className="sm:hidden space-y-3">
+                    {editGroup.asignaciones.map((a) => {
+                      const activo = activosMap.get(a.idActivo);
+                      return (
+                        <Card key={a.idAsignacion} className="p-3">
+                          <div className="space-y-2">
+                            <div className="font-medium text-sm">{a.serial ?? "—"}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {activo?.marca} {activo?.modelo} · {a.codigoActivo ?? "—"}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={a.estadoAsignacion === "Activa" ? "default" : "secondary"}
+                                className="text-[10px] h-5"
+                              >
+                                {a.estadoAsignacion}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-end gap-2 pt-3 mt-3 border-t">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 h-8 text-xs"
+                              onClick={() => {
+                                setEditGroupTarget(a);
+                                setEditGroup(null);
+                              }}
+                            >
+                              <Edit className="h-3.5 w-3.5 mr-1" />
+                              Editar
+                            </Button>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditGroup(null)}>
+              Cerrar
             </Button>
           </DialogFooter>
         </DialogContent>
