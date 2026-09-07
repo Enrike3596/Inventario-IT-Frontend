@@ -14,6 +14,7 @@ import {
   Truck,
   Users,
   Activity,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -47,6 +48,7 @@ const inventario: Item[] = [
     roles: ["super_admin", "coordinador"],
   },
   { title: "Remisiones", url: "/remisiones", icon: ClipboardList },
+  { title: "Informes", url: "/informes", icon: FileText },
 ];
 
 const operacion: Item[] = [
