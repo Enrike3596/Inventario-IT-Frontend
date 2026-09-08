@@ -40,6 +40,7 @@ function Page() {
 
   return (
     <ResourcePage<Role>
+      hideView
       title="Roles"
       subtitle="Perfiles de acceso al sistema"
       data={roles ?? []}

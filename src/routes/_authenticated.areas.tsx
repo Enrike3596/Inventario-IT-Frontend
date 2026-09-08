@@ -51,6 +51,7 @@ function Page() {
 
   return (
     <ResourcePage<Area>
+      hideView
       title="Areas"
       subtitle="Gestion de areas de la organizacion"
       data={areas ?? []}

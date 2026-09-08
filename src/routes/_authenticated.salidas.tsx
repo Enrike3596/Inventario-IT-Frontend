@@ -69,6 +69,7 @@ function Page() {
 
   return (
     <ResourcePage<Salida>
+      hideView
       module="salidas"
       title="Salidas"
       subtitle="Salidas de inventario"

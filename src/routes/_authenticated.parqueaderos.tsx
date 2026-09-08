@@ -45,6 +45,7 @@ function Page() {
 
   return (
     <ResourcePage<Parqueadero>
+      hideView
       title="Parqueaderos"
       subtitle="Bodegas y zonas de almacenamiento"
       data={parqueaderos ?? []}

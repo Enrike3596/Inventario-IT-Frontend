@@ -112,6 +112,7 @@ interface ResourcePageProps<T> {
   filters?: ReactNode;
   filterFn?: (item: T) => boolean;
   module?: string;
+  hideView?: boolean;
   extraActions?: (row: T) => ReactNode;
   renderCustomForm?: (props: CustomFormProps<T>) => ReactNode;
   validate?: (form: Record<string, unknown>, editing: T | null) => string | null;
@@ -140,6 +141,7 @@ export function ResourcePage<T>({
   filters,
   filterFn,
   module,
+  hideView = false,
   extraActions,
   renderCustomForm,
   validate,
@@ -361,14 +363,16 @@ export function ResourcePage<T>({
                       ))}
                       <TableCell className="text-right">
                         <div className="inline-flex gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setViewing(row)}
-                            aria-label="Ver detalles"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          {!hideView && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setViewing(row)}
+                              aria-label="Ver detalles"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          )}
                           {extraActions?.(row)}
                           {canEdit && (
                             <Button
@@ -432,9 +436,11 @@ export function ResourcePage<T>({
                     ))}
                 </div>
                 <div className="flex items-center justify-end gap-1 pt-3 mt-3 border-t">
-                  <Button size="sm" variant="ghost" onClick={() => setViewing(row)}>
-                    <Eye className="h-3.5 w-3.5 mr-1" /> Ver
-                  </Button>
+                  {!hideView && (
+                    <Button size="sm" variant="ghost" onClick={() => setViewing(row)}>
+                      <Eye className="h-3.5 w-3.5 mr-1" /> Ver
+                    </Button>
+                  )}
                   {extraActions?.(row)}
                   {canEdit && (
                     <Button size="sm" variant="ghost" onClick={() => openEdit(row)}>
@@ -668,30 +674,32 @@ export function ResourcePage<T>({
       </Dialog>
 
       {/* View details dialog */}
-      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Detalles del {singular}</DialogTitle>
-          </DialogHeader>
-          {viewing && (
-            <div className="space-y-4">
-              {columns.map((c) => (
-                <div key={String(c.key ?? c.header)}>
-                  <Label className="text-muted-foreground text-xs font-medium">{c.header}</Label>
-                  <div className="text-sm mt-0.5">
-                    {c.render ? c.render(viewing) : String(viewing[c.key as keyof T] ?? "—")}
+      {!hideView && (
+        <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Detalles del {singular}</DialogTitle>
+            </DialogHeader>
+            {viewing && (
+              <div className="space-y-4">
+                {columns.map((c) => (
+                  <div key={String(c.key ?? c.header)}>
+                    <Label className="text-muted-foreground text-xs font-medium">{c.header}</Label>
+                    <div className="text-sm mt-0.5">
+                      {c.render ? c.render(viewing) : String(viewing[c.key as keyof T] ?? "—")}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setViewing(null)}>
-              Cerrar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                ))}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setViewing(null)}>
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

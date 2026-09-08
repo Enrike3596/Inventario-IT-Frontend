@@ -45,6 +45,7 @@ function Page() {
 
   return (
     <ResourcePage<CategoriaActivo>
+      hideView
       title="Categorías de Activos"
       subtitle="Clasificación de tipos de equipos"
       data={categorias ?? []}
