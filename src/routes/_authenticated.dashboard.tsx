@@ -15,6 +15,32 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
 });
 
+function normalizeCanalValue(raw: unknown): "CorreoElectronico" | "SistemaDeTickets" | "" {
+  if (raw === null || raw === undefined) return "";
+  const s = String(raw).trim();
+  if (!s) return "";
+  const lower = s.toLowerCase();
+  if (lower === "sistemadetickets" || lower === "sistema de tickets" || s === "2")
+    return "SistemaDeTickets";
+  if (
+    lower === "correoelectronico" ||
+    lower === "correo electrónico" ||
+    lower === "correo electronico" ||
+    s === "1"
+  )
+    return "CorreoElectronico";
+  if (s === "CorreoElectronico" || s === "SistemaDeTickets") return s;
+  if (s === "0") return "CorreoElectronico";
+  return "";
+}
+
+function canalToLabel(raw: unknown): string {
+  const v = normalizeCanalValue(raw);
+  if (v === "SistemaDeTickets") return "Sistema de Tickets";
+  if (v === "CorreoElectronico") return "Correo Electrónico";
+  return "Sin canal";
+}
+
 function Dashboard() {
   const { data: activos } = useActivos();
   const { data: usuarios } = useUsuarios();
@@ -79,7 +105,10 @@ function Dashboard() {
   const asignacionesPorCanal = useMemo(() => {
     const map: Record<string, number> = {};
     for (const a of asignaciones ?? []) {
-      const canal = a.Canal ?? "Sin canal";
+      const record = a as unknown as Record<string, unknown>;
+      const canal = canalToLabel(
+        record.Canal ?? record.canal ?? record.nombreCanal ?? record.idCanal ?? "",
+      );
       map[canal] = (map[canal] ?? 0) + 1;
     }
     return map;
@@ -92,8 +121,12 @@ function Dashboard() {
         .sort((a, b) => b.count - a.count),
     [asignacionesPorCanal],
   );
-  const topCanal: [string, number] | undefined = canalesList[0]
-    ? [canalesList[0].nombre, canalesList[0].count]
+  const canalesConocidos = useMemo(
+    () => canalesList.filter((c) => c.nombre !== "Sin canal"),
+    [canalesList],
+  );
+  const topCanal: [string, number] | undefined = canalesConocidos[0]
+    ? [canalesConocidos[0].nombre, canalesConocidos[0].count]
     : undefined;
   const totalAsignaciones = canalesList.reduce((s, c) => s + c.count, 0);
 

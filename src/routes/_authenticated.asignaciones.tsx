@@ -122,6 +122,52 @@ interface AsignacionGroup {
   allFinalizadas: boolean;
 }
 
+const CANAL_OPTIONS = [
+  { value: "CorreoElectronico", label: "Correo Electrónico" },
+  { value: "SistemaDeTickets", label: "Sistema de Tickets" },
+] as const;
+
+type CanalValue = (typeof CANAL_OPTIONS)[number]["value"];
+
+function normalizeCanalValue(raw: unknown): CanalValue | "" {
+  if (raw === null || raw === undefined) return "";
+  const s = String(raw).trim();
+  if (!s) return "";
+  const lower = s.toLowerCase();
+  if (lower === "sistemadetickets" || lower === "sistema de tickets" || s === "2" || lower === "2")
+    return "SistemaDeTickets";
+  if (
+    lower === "correoelectronico" ||
+    lower === "correo electrónico" ||
+    lower === "correo electronico" ||
+    s === "1" ||
+    lower === "1"
+  )
+    return "CorreoElectronico";
+  if (s === "CorreoElectronico" || s === "SistemaDeTickets") return s;
+  // Soporte numérico del backend (0 = Correo, 1 = Tickets) por si llega como índice
+  if (s === "0") return "CorreoElectronico";
+  return "";
+}
+
+function getAsignacionCanal(a: AsignacionUsuario): CanalValue | "" {
+  const record = a as unknown as Record<string, unknown>;
+  return normalizeCanalValue(
+    record.Canal ?? record.canal ?? record.nombreCanal ?? record.idCanal ?? "",
+  );
+}
+
+function canalToLabel(raw: unknown): string {
+  const v = normalizeCanalValue(raw);
+  if (v === "SistemaDeTickets") return "Sistema de Tickets";
+  if (v === "CorreoElectronico") return "Correo Electrónico";
+  return "—";
+}
+
+function isTicketCanal(raw: unknown): boolean {
+  return normalizeCanalValue(raw) === "SistemaDeTickets";
+}
+
 function ActivoCombobox({
   value,
   onChange,
@@ -326,9 +372,9 @@ function Page() {
   );
 
   const esSistemaTicket = useMemo(() => {
-    if (!createForm.idCanal) return false;
-    return String(createForm.idCanal) === "2";
-  }, [createForm.idCanal]);
+    if (!createForm.Canal) return false;
+    return isTicketCanal(createForm.Canal);
+  }, [createForm.Canal]);
 
   const groups = useMemo(() => {
     const map = new Map<string, AsignacionUsuario[]>();
@@ -393,7 +439,7 @@ function Page() {
       idUsuarioDestino: "",
       idActivo: "",
       idParqueadero: "",
-      idCanal: "",
+      Canal: "",
       idUsuarioEntrega: "",
       registroSalida: "",
       numeroTicket: "",
@@ -440,7 +486,7 @@ function Page() {
       const required = [
         "idActivo",
         "idUsuarioDestino",
-        "idCanal",
+        "Canal",
         "idUsuarioEntrega",
         "registroSalida",
       ];
@@ -451,7 +497,7 @@ function Page() {
           const labels: Record<string, string> = {
             idUsuarioDestino: "Usuario destino",
             idActivo: "Activo",
-            idCanal: "Canal",
+            Canal: "Canal",
             idUsuarioEntrega: "Usuario entrega",
             registroSalida: "Registro de salida",
             numeroTicket: "N° Ticket",
@@ -467,7 +513,11 @@ function Page() {
           ...createForm,
           idUsuarioDestino: createForm.idUsuarioDestino,
           idParqueadero: asignacionTipo === "Parqueadero" ? createForm.idParqueadero : null,
+          numeroTicket: esSistemaTicket ? createForm.numeroTicket : null,
         };
+        // Compatibilidad: no enviar campo legado si existiera
+        delete payload.idCanal;
+        delete payload.nombreCanal;
         await createMutation.mutateAsync(payload as Partial<AsignacionUsuario>);
         toast.success("Asignación creada");
         setCreateOpen(false);
@@ -480,7 +530,7 @@ function Page() {
         setCreateSubmitting(false);
       }
     },
-    [createForm, createMutation, asignacionTipo, syncActivoEstado],
+    [createForm, createMutation, asignacionTipo, syncActivoEstado, esSistemaTicket],
   );
 
   const openEdit = useCallback((asignacion: AsignacionUsuario) => {
@@ -490,7 +540,7 @@ function Page() {
       idActivo: asignacion.idActivo,
       idUsuarioDestino: asignacion.idUsuarioDestino ?? "",
       idParqueadero: asignacion.idParqueadero ?? "",
-      idCanal: asignacion.idCanal,
+      Canal: getAsignacionCanal(asignacion),
       idUsuarioEntrega: asignacion.idUsuarioEntrega,
       registroSalida: asignacion.registroSalida,
       numeroTicket: asignacion.numeroTicket ?? "",
@@ -507,19 +557,19 @@ function Page() {
       const required = [
         "idActivo",
         "idUsuarioDestino",
-        "idCanal",
+        "Canal",
         "idUsuarioEntrega",
         "registroSalida",
       ];
       if (editAsignacionTipo === "Parqueadero") required.push("idParqueadero");
-      const esTicket = String(editForm.idCanal) === "2";
+      const esTicket = isTicketCanal(editForm.Canal);
       if (esTicket) required.push("numeroTicket");
       for (const k of required) {
         if (editForm[k] === "" || editForm[k] === undefined || editForm[k] === null) {
           const labels: Record<string, string> = {
             idUsuarioDestino: "Usuario destino",
             idActivo: "Activo",
-            idCanal: "Canal",
+            Canal: "Canal",
             idUsuarioEntrega: "Usuario entrega",
             registroSalida: "Registro de salida",
             numeroTicket: "N° Ticket",
@@ -538,7 +588,11 @@ function Page() {
           ...editForm,
           idUsuarioDestino: editForm.idUsuarioDestino,
           idParqueadero: editAsignacionTipo === "Parqueadero" ? editForm.idParqueadero : null,
+          numeroTicket: isTicketCanal(editForm.Canal) ? editForm.numeroTicket : null,
         };
+        // Compatibilidad: no enviar campo legado si existiera
+        delete payload.idCanal;
+        delete payload.nombreCanal;
         await updateMutation.mutateAsync({
           id: editingAsignacion.idAsignacion,
           data: payload as Partial<AsignacionUsuario>,
@@ -642,7 +696,7 @@ function Page() {
       });
       const newPayload: Record<string, unknown> = {
         idActivo: reassignSource.idActivo,
-        idCanal: reassignSource.idCanal,
+        Canal: getAsignacionCanal(reassignSource),
         idUsuarioEntrega: reassignSource.idUsuarioEntrega,
         registroSalida: reassignSource.registroSalida,
         numeroTicket: reassignSource.numeroTicket,
@@ -1174,26 +1228,34 @@ function Page() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="idCanal">
+                <Label htmlFor="Canal">
                   Canal <span className="text-destructive"> *</span>
                 </Label>
                 <Select
-                  value={createForm.idCanal !== "" ? String(createForm.idCanal) : undefined}
+                  value={
+                    createForm.Canal !== "" && createForm.Canal !== undefined
+                      ? String(createForm.Canal)
+                      : undefined
+                  }
                   onValueChange={(v) => {
-                    const isTicket = v === "2";
+                    const normalized = normalizeCanalValue(v);
+                    const isTicket = isTicketCanal(normalized);
                     setCreateForm((s) => ({
                       ...s,
-                      idCanal: v,
+                      Canal: normalized,
                       numeroTicket: isTicket ? s.numeroTicket : "",
                     }));
                   }}
                 >
-                  <SelectTrigger id="idCanal">
+                  <SelectTrigger id="Canal">
                     <SelectValue placeholder="Selecciona..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">Correo Electrónico</SelectItem>
-                    <SelectItem value="2">Sistema de Tickets</SelectItem>
+                    {CANAL_OPTIONS.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1392,26 +1454,34 @@ function Page() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="editIdCanal">
+                <Label htmlFor="editCanal">
                   Canal <span className="text-destructive"> *</span>
                 </Label>
                 <Select
-                  value={editForm.idCanal !== "" ? String(editForm.idCanal) : undefined}
+                  value={
+                    editForm.Canal !== "" && editForm.Canal !== undefined
+                      ? String(editForm.Canal)
+                      : undefined
+                  }
                   onValueChange={(v) => {
-                    const isTicket = v === "2";
+                    const normalized = normalizeCanalValue(v);
+                    const isTicket = isTicketCanal(normalized);
                     setEditForm((s) => ({
                       ...s,
-                      idCanal: v,
+                      Canal: normalized,
                       numeroTicket: isTicket ? s.numeroTicket : "",
                     }));
                   }}
                 >
-                  <SelectTrigger id="editIdCanal">
+                  <SelectTrigger id="editCanal">
                     <SelectValue placeholder="Selecciona..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">Correo Electrónico</SelectItem>
-                    <SelectItem value="2">Sistema de Tickets</SelectItem>
+                    {CANAL_OPTIONS.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1453,13 +1523,13 @@ function Page() {
               <div className="space-y-2">
                 <Label htmlFor="editNumeroTicket">
                   N° Ticket
-                  {String(editForm.idCanal) === "2" && <span className="text-destructive"> *</span>}
+                  {isTicketCanal(editForm.Canal) && <span className="text-destructive"> *</span>}
                 </Label>
                 <Input
                   id="editNumeroTicket"
                   value={String(editForm.numeroTicket ?? "")}
                   onChange={(e) => setEditForm((s) => ({ ...s, numeroTicket: e.target.value }))}
-                  disabled={String(editForm.idCanal) !== "2"}
+                  disabled={!isTicketCanal(editForm.Canal)}
                 />
               </div>
 
@@ -1537,7 +1607,7 @@ function Page() {
             <div className="space-y-3">
               {viewGroup.asignaciones.map((a) => {
                 const activo = activosMap.get(a.idActivo);
-                const esTicket = a.nombreCanal === "Sistema de Tickets";
+                const esTicket = isTicketCanal(getAsignacionCanal(a));
                 return (
                   <Card key={a.idAsignacion} className="p-4">
                     <div className="flex items-start justify-between gap-3 mb-3">
@@ -1593,7 +1663,7 @@ function Page() {
                       </div>
                       <div>
                         <span className="text-xs text-muted-foreground block">Canal</span>
-                        <span className="font-medium">{a.nombreCanal ?? "—"}</span>
+                        <span className="font-medium">{canalToLabel(getAsignacionCanal(a))}</span>
                       </div>
                       {viewGroup.tipo === "Parqueadero" && (
                         <div>
