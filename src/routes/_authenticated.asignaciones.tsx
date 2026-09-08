@@ -126,10 +126,12 @@ function ActivoCombobox({
   value,
   onChange,
   activosDisponibles,
+  currentActivo,
 }: {
   value: number | undefined;
   onChange: (value: number) => void;
   activosDisponibles: Activo[];
+  currentActivo?: Activo;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -143,21 +145,23 @@ function ActivoCombobox({
     }
   }, [open]);
 
-  const filtered = useMemo(
-    () =>
-      activosDisponibles.filter((a) => {
-        const q = search.toLowerCase();
-        return (
-          a.serial.toLowerCase().includes(q) ||
-          a.marca.toLowerCase().includes(q) ||
-          a.modelo.toLowerCase().includes(q) ||
-          (a.codigoActivo ?? "").toLowerCase().includes(q)
-        );
-      }),
-    [activosDisponibles, search],
-  );
+  const filtered = useMemo(() => {
+    const list = [...activosDisponibles];
+    if (currentActivo && !list.some((a) => a.idActivo === currentActivo.idActivo)) {
+      list.unshift(currentActivo);
+    }
+    return list.filter((a) => {
+      const q = search.toLowerCase();
+      return (
+        a.serial.toLowerCase().includes(q) ||
+        a.marca.toLowerCase().includes(q) ||
+        a.modelo.toLowerCase().includes(q) ||
+        (a.codigoActivo ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [activosDisponibles, search, currentActivo]);
 
-  const selected = activosDisponibles.find((a) => a.idActivo === value);
+  const selected = filtered.find((a) => a.idActivo === value) ?? currentActivo;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -281,7 +285,9 @@ function Page() {
   const [editingAsignacion, setEditingAsignacion] = useState<AsignacionUsuario | null>(null);
   const [editForm, setEditForm] = useState<Record<string, unknown>>({});
   const [editSubmitting, setEditSubmitting] = useState(false);
-  const [editAsignacionTipo, setEditAsignacionTipo] = useState<"Usuario" | "Parqueadero">("Usuario");
+  const [editAsignacionTipo, setEditAsignacionTipo] = useState<"Usuario" | "Parqueadero">(
+    "Usuario",
+  );
 
   const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
   const [reassignSource, setReassignSource] = useState<AsignacionUsuario | null>(null);
@@ -1279,7 +1285,10 @@ function Page() {
       </Dialog>
 
       {/* Edit dialog */}
-      <Dialog open={editOpen} onOpenChange={(o) => !o && (setEditOpen(false), setEditingAsignacion(null))}>
+      <Dialog
+        open={editOpen}
+        onOpenChange={(o) => !o && (setEditOpen(false), setEditingAsignacion(null))}
+      >
         <DialogContent className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar asignación</DialogTitle>
@@ -1326,13 +1335,9 @@ function Page() {
                 </Label>
                 <Select
                   value={
-                    editForm.idUsuarioDestino !== ""
-                      ? String(editForm.idUsuarioDestino)
-                      : undefined
+                    editForm.idUsuarioDestino !== "" ? String(editForm.idUsuarioDestino) : undefined
                   }
-                  onValueChange={(v) =>
-                    setEditForm((s) => ({ ...s, idUsuarioDestino: Number(v) }))
-                  }
+                  onValueChange={(v) => setEditForm((s) => ({ ...s, idUsuarioDestino: Number(v) }))}
                 >
                   <SelectTrigger id="editIdUsuarioDestino">
                     <SelectValue placeholder="Selecciona un usuario..." />
@@ -1356,9 +1361,7 @@ function Page() {
                     value={
                       editForm.idParqueadero !== "" ? String(editForm.idParqueadero) : undefined
                     }
-                    onValueChange={(v) =>
-                      setEditForm((s) => ({ ...s, idParqueadero: Number(v) }))
-                    }
+                    onValueChange={(v) => setEditForm((s) => ({ ...s, idParqueadero: Number(v) }))}
                   >
                     <SelectTrigger id="editIdParqueadero">
                       <SelectValue placeholder="Selecciona un parqueadero..." />
@@ -1382,6 +1385,9 @@ function Page() {
                   value={editForm.idActivo as number | undefined}
                   onChange={(v) => setEditForm((s) => ({ ...s, idActivo: v }))}
                   activosDisponibles={activosDisponibles}
+                  currentActivo={
+                    editingAsignacion ? activosMap.get(editingAsignacion.idActivo) : undefined
+                  }
                 />
               </div>
 
@@ -1416,13 +1422,9 @@ function Page() {
                 </Label>
                 <Select
                   value={
-                    editForm.idUsuarioEntrega !== ""
-                      ? String(editForm.idUsuarioEntrega)
-                      : undefined
+                    editForm.idUsuarioEntrega !== "" ? String(editForm.idUsuarioEntrega) : undefined
                   }
-                  onValueChange={(v) =>
-                    setEditForm((s) => ({ ...s, idUsuarioEntrega: Number(v) }))
-                  }
+                  onValueChange={(v) => setEditForm((s) => ({ ...s, idUsuarioEntrega: Number(v) }))}
                 >
                   <SelectTrigger id="editIdUsuarioEntrega">
                     <SelectValue placeholder="Selecciona..." />
@@ -1450,13 +1452,14 @@ function Page() {
 
               <div className="space-y-2">
                 <Label htmlFor="editNumeroTicket">
-                  N° Ticket{esSistemaTicket && <span className="text-destructive"> *</span>}
+                  N° Ticket
+                  {String(editForm.idCanal) === "2" && <span className="text-destructive"> *</span>}
                 </Label>
                 <Input
                   id="editNumeroTicket"
                   value={String(editForm.numeroTicket ?? "")}
                   onChange={(e) => setEditForm((s) => ({ ...s, numeroTicket: e.target.value }))}
-                  disabled={!esSistemaTicket}
+                  disabled={String(editForm.idCanal) !== "2"}
                 />
               </div>
 
@@ -1558,7 +1561,7 @@ function Page() {
                           variant="ghost"
                           onClick={() => {
                             setViewGroup(null);
-                            setEditGroupTarget(a);
+                            openEdit(a);
                           }}
                           aria-label="Editar asignación"
                           title="Editar asignación"
@@ -2000,7 +2003,15 @@ function Page() {
       </Dialog>
 
       {/* Edit group dialog (seleccionar asignación a editar) */}
-      <Dialog open={!!editGroup} onOpenChange={(o) => !o && (setEditGroup(null), setEditGroupTarget(null))}>
+      <Dialog
+        open={!!editGroup}
+        onOpenChange={(o) => {
+          if (!o) {
+            setEditGroup(null);
+            setEditGroupTarget(null);
+          }
+        }}
+      >
         <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg">
@@ -2053,7 +2064,9 @@ function Page() {
                               </TableCell>
                               <TableCell className="hidden md:table-cell">
                                 <Badge
-                                  variant={a.estadoAsignacion === "Activa" ? "default" : "secondary"}
+                                  variant={
+                                    a.estadoAsignacion === "Activa" ? "default" : "secondary"
+                                  }
                                   className="text-[10px] h-5"
                                 >
                                   {a.estadoAsignacion}
@@ -2064,8 +2077,9 @@ function Page() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => {
-                                    setEditGroupTarget(a);
                                     setEditGroup(null);
+                                    setEditGroupTarget(null);
+                                    openEdit(a);
                                   }}
                                 >
                                   <Edit className="h-3.5 w-3.5 mr-1" />
@@ -2105,8 +2119,9 @@ function Page() {
                               variant="outline"
                               className="flex-1 h-8 text-xs"
                               onClick={() => {
-                                setEditGroupTarget(a);
                                 setEditGroup(null);
+                                setEditGroupTarget(null);
+                                openEdit(a);
                               }}
                             >
                               <Edit className="h-3.5 w-3.5 mr-1" />
