@@ -1,14 +1,5 @@
 import { useMemo, useState, useEffect, type ReactNode } from "react";
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  Search,
-  Loader2,
-  Eye,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Plus, Edit, Trash2, Search, Loader2, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
@@ -386,7 +377,7 @@ export function ResourcePage<T>({
                               onClick={() => openEdit(row)}
                               aria-label="Editar"
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Edit className="h-4 w-4" />
                             </Button>
                           )}
                           {canDelete && (
@@ -447,7 +438,7 @@ export function ResourcePage<T>({
                   {extraActions?.(row)}
                   {canEdit && (
                     <Button size="sm" variant="ghost" onClick={() => openEdit(row)}>
-                      <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                      <Edit className="h-3.5 w-3.5 mr-1" /> Editar
                     </Button>
                   )}
                   {canDelete && (

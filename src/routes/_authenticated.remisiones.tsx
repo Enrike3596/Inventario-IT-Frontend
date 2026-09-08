@@ -2,7 +2,7 @@ import { useState, useMemo, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Plus,
-  Pencil,
+  Edit,
   Trash2,
   PackageCheck,
   ScanLine,
@@ -960,7 +960,7 @@ function Page() {
                                 onClick={() => openEditRem(rem)}
                                 aria-label="Editar"
                               >
-                                <Pencil className="h-4 w-4" />
+                                <Edit className="h-4 w-4" />
                               </Button>
                             )}
                             {canDelete && (
@@ -1070,7 +1070,7 @@ function Page() {
                     </Button>
                     {canEdit && (
                       <Button size="sm" variant="ghost" onClick={() => openEditRem(rem)}>
-                        <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                        <Edit className="h-3.5 w-3.5 mr-1" /> Editar
                       </Button>
                     )}
                     {canDelete && (
@@ -1304,7 +1304,7 @@ function Page() {
                           className="text-muted-foreground hover:text-primary text-xs"
                           aria-label="Editar ítem"
                         >
-                          <Pencil className="h-3.5 w-3.5" />
+                          <Edit className="h-3.5 w-3.5" />
                         </button>
                         <button
                           type="button"
@@ -1551,7 +1551,7 @@ function Page() {
                                             openEditSerials(id, nombre, remaining, detalles);
                                           }}
                                         >
-                                          <Pencil className="h-3.5 w-3.5" />
+                                          <Edit className="h-3.5 w-3.5" />
                                         </Button>
                                       )}
                                     </TableCell>
@@ -1641,7 +1641,7 @@ function Page() {
                                         openEditSerials(id, nombre, remaining, detalles);
                                       }}
                                     >
-                                      <Pencil className="h-3 w-3 mr-1" /> Editar
+                                      <Edit className="h-3 w-3 mr-1" /> Editar
                                     </Button>
                                   </div>
                                 )}
