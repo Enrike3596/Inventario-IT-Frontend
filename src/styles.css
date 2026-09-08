@@ -166,6 +166,15 @@
   * {
     border-color: var(--color-border);
   }
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
+  html {
+    background-color: var(--background);
+  }
   html,
   body {
     font-family: var(--font-sans);

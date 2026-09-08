@@ -10,19 +10,26 @@ const ThemeContext = createContext<{
 } | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark");
-
-  useEffect(() => {
-    const stored = (typeof window !== "undefined" &&
-      window.localStorage.getItem(KEY)) as Theme | null;
-    const initial: Theme = stored ?? "dark";
-    setThemeState(initial);
-  }, []);
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "dark";
+    try {
+      const stored = window.localStorage.getItem(KEY);
+      if (stored === "light" || stored === "dark") return stored;
+    } catch {
+      // acceso a localStorage bloqueado: usar valor por defecto
+    }
+    return "dark";
+  });
 
   useEffect(() => {
     if (typeof document === "undefined") return;
     document.documentElement.classList.toggle("dark", theme === "dark");
-    if (typeof window !== "undefined") window.localStorage.setItem(KEY, theme);
+    document.documentElement.style.colorScheme = theme === "dark" ? "dark" : "light";
+    try {
+      window.localStorage.setItem(KEY, theme);
+    } catch {
+      // almacenamiento no disponible: el tema solo vive en memoria
+    }
   }, [theme]);
 
   return (
