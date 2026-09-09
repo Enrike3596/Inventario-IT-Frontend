@@ -79,6 +79,7 @@ import {
   useUsuarios,
   useActivos,
   useParqueaderos,
+  useCategorias,
   useGenerarActa,
   useEnviarActa,
   useActaPorDestino,
@@ -168,16 +169,25 @@ function isTicketCanal(raw: unknown): boolean {
   return normalizeCanalValue(raw) === "SistemaDeTickets";
 }
 
+function etiquetaActivo(a: Activo): string {
+  const codigo = a.codigoActivo || a.serial || `#${a.idActivo}`;
+  return [codigo, a.modelo].filter(Boolean).join(" — ");
+}
+
 function ActivoCombobox({
   value,
   onChange,
   activosDisponibles,
   currentActivo,
+  disabled = false,
+  emptyMessage = "No se encontraron activos.",
 }: {
   value: number | undefined;
   onChange: (value: number) => void;
   activosDisponibles: Activo[];
   currentActivo?: Activo;
+  disabled?: boolean;
+  emptyMessage?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -199,10 +209,10 @@ function ActivoCombobox({
     return list.filter((a) => {
       const q = search.toLowerCase();
       return (
-        a.serial.toLowerCase().includes(q) ||
-        a.marca.toLowerCase().includes(q) ||
+        (a.codigoActivo ?? "").toLowerCase().includes(q) ||
         a.modelo.toLowerCase().includes(q) ||
-        (a.codigoActivo ?? "").toLowerCase().includes(q)
+        a.serial.toLowerCase().includes(q) ||
+        a.marca.toLowerCase().includes(q)
       );
     });
   }, [activosDisponibles, search, currentActivo]);
@@ -217,11 +227,10 @@ function ActivoCombobox({
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
+          disabled={disabled}
         >
           <span className="truncate flex-1 min-w-0">
-            {selected
-              ? `${selected.serial} — ${selected.marca} ${selected.modelo}`
-              : "Selecciona un activo..."}
+            {selected ? etiquetaActivo(selected) : "Selecciona un activo..."}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -238,12 +247,12 @@ function ActivoCombobox({
             onValueChange={setSearch}
           />
           <CommandList className="max-h-[340px]">
-            <CommandEmpty>No se encontraron activos.</CommandEmpty>
+            <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {filtered.map((a) => (
                 <CommandItem
                   key={a.idActivo}
-                  value={`${a.serial} ${a.marca} ${a.modelo} ${a.codigoActivo}`}
+                  value={`${a.codigoActivo} ${a.modelo} ${a.serial} ${a.marca}`}
                   onSelect={() => {
                     onChange(a.idActivo);
                     setOpen(false);
@@ -255,9 +264,7 @@ function ActivoCombobox({
                       value === a.idActivo ? "opacity-100" : "opacity-0",
                     )}
                   />
-                  <span className="truncate">
-                    {a.serial} — {a.marca} {a.modelo}
-                  </span>
+                  <span className="truncate">{etiquetaActivo(a)}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -274,6 +281,7 @@ function Page() {
   const { data: roles } = useRoles();
   const { data: activos } = useActivos();
   const { data: parqueaderos } = useParqueaderos();
+  const { data: categorias } = useCategorias();
   const createMutation = useCreateAsignacion();
   const updateMutation = useUpdateAsignacion();
   const devolverMutation = useDevolverAsignacion();
@@ -361,6 +369,39 @@ function Page() {
 
   const activosMap = useMemo(() => new Map((activos ?? []).map((a) => [a.idActivo, a])), [activos]);
 
+  const createCategoriaId =
+    createForm.idCategoria !== undefined &&
+    createForm.idCategoria !== "" &&
+    createForm.idCategoria !== null
+      ? Number(createForm.idCategoria)
+      : undefined;
+
+  const editCategoriaId =
+    editForm.idCategoria !== undefined &&
+    editForm.idCategoria !== "" &&
+    editForm.idCategoria !== null
+      ? Number(editForm.idCategoria)
+      : undefined;
+
+  const activosDisponiblesPorCategoria = useMemo(() => {
+    if (!createCategoriaId) return [];
+    return activosDisponibles
+      .filter((a) => a.idCategoria === createCategoriaId)
+      .sort((x, y) => etiquetaActivo(x).localeCompare(etiquetaActivo(y)));
+  }, [activosDisponibles, createCategoriaId]);
+
+  const activosDisponiblesPorCategoriaEdit = useMemo(() => {
+    const list = [...activosDisponibles];
+    if (editingAsignacion) {
+      const current = activosMap.get(editingAsignacion.idActivo);
+      if (current && !list.some((a) => a.idActivo === current.idActivo)) list.push(current);
+    }
+    if (!editCategoriaId) return [];
+    return list
+      .filter((a) => a.idCategoria === editCategoriaId)
+      .sort((x, y) => etiquetaActivo(x).localeCompare(etiquetaActivo(y)));
+  }, [activosDisponibles, editCategoriaId, editingAsignacion, activosMap]);
+
   const usuariosMap = useMemo(
     () => new Map((usuarios ?? []).map((u) => [u.idUsuario, u])),
     [usuarios],
@@ -437,6 +478,7 @@ function Page() {
   const openCreate = useCallback(() => {
     const initial: Record<string, unknown> = {
       idUsuarioDestino: "",
+      idCategoria: "",
       idActivo: "",
       idParqueadero: "",
       Canal: "",
@@ -484,6 +526,7 @@ function Page() {
     async (e: React.FormEvent) => {
       e.preventDefault();
       const required = [
+        "idCategoria",
         "idActivo",
         "idUsuarioDestino",
         "Canal",
@@ -496,6 +539,7 @@ function Page() {
         if (createForm[k] === "" || createForm[k] === undefined || createForm[k] === null) {
           const labels: Record<string, string> = {
             idUsuarioDestino: "Usuario destino",
+            idCategoria: "Categoría",
             idActivo: "Activo",
             Canal: "Canal",
             idUsuarioEntrega: "Usuario entrega",
@@ -518,6 +562,7 @@ function Page() {
         // Compatibilidad: no enviar campo legado si existiera
         delete payload.idCanal;
         delete payload.nombreCanal;
+        delete payload.idCategoria;
         await createMutation.mutateAsync(payload as Partial<AsignacionUsuario>);
         toast.success("Asignación creada");
         setCreateOpen(false);
@@ -533,28 +578,33 @@ function Page() {
     [createForm, createMutation, asignacionTipo, syncActivoEstado, esSistemaTicket],
   );
 
-  const openEdit = useCallback((asignacion: AsignacionUsuario) => {
-    setEditingAsignacion(asignacion);
-    const initial: Record<string, unknown> = {
-      idAsignacion: asignacion.idAsignacion,
-      idActivo: asignacion.idActivo,
-      idUsuarioDestino: asignacion.idUsuarioDestino ?? "",
-      idParqueadero: asignacion.idParqueadero ?? "",
-      Canal: getAsignacionCanal(asignacion),
-      idUsuarioEntrega: asignacion.idUsuarioEntrega,
-      registroSalida: asignacion.registroSalida,
-      numeroTicket: asignacion.numeroTicket ?? "",
-      estadoAsignacion: asignacion.estadoAsignacion,
-    };
-    setEditForm(initial);
-    setEditAsignacionTipo(asignacion.idParqueadero ? "Parqueadero" : "Usuario");
-    setEditOpen(true);
-  }, []);
+  const openEdit = useCallback(
+    (asignacion: AsignacionUsuario) => {
+      setEditingAsignacion(asignacion);
+      const initial: Record<string, unknown> = {
+        idAsignacion: asignacion.idAsignacion,
+        idCategoria: activosMap.get(asignacion.idActivo)?.idCategoria ?? "",
+        idActivo: asignacion.idActivo,
+        idUsuarioDestino: asignacion.idUsuarioDestino ?? "",
+        idParqueadero: asignacion.idParqueadero ?? "",
+        Canal: getAsignacionCanal(asignacion),
+        idUsuarioEntrega: asignacion.idUsuarioEntrega,
+        registroSalida: asignacion.registroSalida,
+        numeroTicket: asignacion.numeroTicket ?? "",
+        estadoAsignacion: asignacion.estadoAsignacion,
+      };
+      setEditForm(initial);
+      setEditAsignacionTipo(asignacion.idParqueadero ? "Parqueadero" : "Usuario");
+      setEditOpen(true);
+    },
+    [activosMap],
+  );
 
   const handleEditSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       const required = [
+        "idCategoria",
         "idActivo",
         "idUsuarioDestino",
         "Canal",
@@ -568,6 +618,7 @@ function Page() {
         if (editForm[k] === "" || editForm[k] === undefined || editForm[k] === null) {
           const labels: Record<string, string> = {
             idUsuarioDestino: "Usuario destino",
+            idCategoria: "Categoría",
             idActivo: "Activo",
             Canal: "Canal",
             idUsuarioEntrega: "Usuario entrega",
@@ -593,6 +644,7 @@ function Page() {
         // Compatibilidad: no enviar campo legado si existiera
         delete payload.idCanal;
         delete payload.nombreCanal;
+        delete payload.idCategoria;
         await updateMutation.mutateAsync({
           id: editingAsignacion.idAsignacion,
           data: payload as Partial<AsignacionUsuario>,
@@ -1217,14 +1269,56 @@ function Page() {
               )}
 
               <div className="space-y-2">
+                <Label htmlFor="idCategoria">
+                  Categoría <span className="text-destructive"> *</span>
+                </Label>
+                <Select
+                  value={
+                    createForm.idCategoria !== "" &&
+                    createForm.idCategoria !== undefined &&
+                    createForm.idCategoria !== null
+                      ? String(createForm.idCategoria)
+                      : undefined
+                  }
+                  onValueChange={(v) =>
+                    setCreateForm((s) => ({ ...s, idCategoria: Number(v), idActivo: "" }))
+                  }
+                >
+                  <SelectTrigger id="idCategoria">
+                    <SelectValue placeholder="Selecciona categoría..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(categorias ?? []).map((c) => (
+                      <SelectItem key={c.idCategoria} value={String(c.idCategoria)}>
+                        {c.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="idActivo">
-                  Activo <span className="text-destructive"> *</span>
+                  Activo (código — modelo) <span className="text-destructive"> *</span>
                 </Label>
                 <ActivoCombobox
                   value={createForm.idActivo as number | undefined}
                   onChange={(v) => setCreateForm((s) => ({ ...s, idActivo: v }))}
-                  activosDisponibles={activosDisponibles}
+                  activosDisponibles={activosDisponiblesPorCategoria}
+                  disabled={!createCategoriaId}
+                  emptyMessage={
+                    !createCategoriaId
+                      ? "Primero selecciona una categoría."
+                      : "No hay activos disponibles en esta categoría."
+                  }
                 />
+                {createCategoriaId !== undefined && (
+                  <p className="text-xs text-muted-foreground">
+                    {activosDisponiblesPorCategoria.length} activo
+                    {activosDisponiblesPorCategoria.length === 1 ? "" : "s"} disponible
+                    {activosDisponiblesPorCategoria.length === 1 ? "" : "s"} en esta categoría
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -1440,17 +1534,59 @@ function Page() {
               )}
 
               <div className="space-y-2">
+                <Label htmlFor="editIdCategoria">
+                  Categoría <span className="text-destructive"> *</span>
+                </Label>
+                <Select
+                  value={
+                    editForm.idCategoria !== "" &&
+                    editForm.idCategoria !== undefined &&
+                    editForm.idCategoria !== null
+                      ? String(editForm.idCategoria)
+                      : undefined
+                  }
+                  onValueChange={(v) =>
+                    setEditForm((s) => ({ ...s, idCategoria: Number(v), idActivo: "" }))
+                  }
+                >
+                  <SelectTrigger id="editIdCategoria">
+                    <SelectValue placeholder="Selecciona categoría..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(categorias ?? []).map((c) => (
+                      <SelectItem key={c.idCategoria} value={String(c.idCategoria)}>
+                        {c.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="editIdActivo">
-                  Activo <span className="text-destructive"> *</span>
+                  Activo (código — modelo) <span className="text-destructive"> *</span>
                 </Label>
                 <ActivoCombobox
                   value={editForm.idActivo as number | undefined}
                   onChange={(v) => setEditForm((s) => ({ ...s, idActivo: v }))}
-                  activosDisponibles={activosDisponibles}
+                  activosDisponibles={activosDisponiblesPorCategoriaEdit}
                   currentActivo={
                     editingAsignacion ? activosMap.get(editingAsignacion.idActivo) : undefined
                   }
+                  disabled={!editCategoriaId}
+                  emptyMessage={
+                    !editCategoriaId
+                      ? "Primero selecciona una categoría."
+                      : "No hay activos disponibles en esta categoría."
+                  }
                 />
+                {editCategoriaId !== undefined && (
+                  <p className="text-xs text-muted-foreground">
+                    {activosDisponiblesPorCategoriaEdit.length} activo
+                    {activosDisponiblesPorCategoriaEdit.length === 1 ? "" : "s"} disponible
+                    {activosDisponiblesPorCategoriaEdit.length === 1 ? "" : "s"} en esta categoría
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
