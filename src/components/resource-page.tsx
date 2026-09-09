@@ -96,13 +96,14 @@ interface ResourcePageProps<T> {
   isLoading: boolean;
   idKey: keyof T;
   columns: Column<T>[];
-  fields: FieldDef[];
+  fields?: FieldDef[];
   searchKeys: (keyof T)[];
   singular: string;
   defaultValues?: Partial<T>;
-  onCreate: (data: Partial<T>) => Promise<unknown>;
-  onUpdate: (id: number, data: Partial<T>) => Promise<unknown>;
-  onDelete: (id: number) => Promise<unknown>;
+  onCreate?: (data: Partial<T>) => Promise<unknown>;
+  onUpdate?: (id: number, data: Partial<T>) => Promise<unknown>;
+  onDelete?: (id: number) => Promise<unknown>;
+  readOnly?: boolean;
   loadingCreate?: boolean;
   loadingUpdate?: boolean;
   loadingDelete?: boolean;
@@ -125,13 +126,14 @@ export function ResourcePage<T>({
   isLoading,
   idKey,
   columns,
-  fields,
+  fields = [],
   searchKeys,
   singular,
   defaultValues,
   onCreate,
   onUpdate,
   onDelete,
+  readOnly = false,
   loadingCreate,
   loadingUpdate,
   loadingDelete,
@@ -188,6 +190,7 @@ export function ResourcePage<T>({
   }, [query]);
 
   const openCreate = () => {
+    if (readOnly) return;
     const initial: Record<string, unknown> = { ...(defaultValues ?? {}) };
     fields.forEach((f) => {
       if (!(f.key in initial)) initial[f.key] = f.type === "number" ? 0 : "";
@@ -198,6 +201,7 @@ export function ResourcePage<T>({
   };
 
   const openEdit = (row: T) => {
+    if (readOnly) return;
     if (user?.role === "coordinador") {
       setEditReason("");
       setPendingEditRow(row);
@@ -226,6 +230,7 @@ export function ResourcePage<T>({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (readOnly) return;
     for (const f of fields) {
       if (f.required && (form[f.key] === "" || form[f.key] === undefined || form[f.key] === null)) {
         toast.error(`${f.label} es obligatorio`);
@@ -242,12 +247,14 @@ export function ResourcePage<T>({
     setSubmitting(true);
     try {
       if (editing) {
+        if (!onUpdate) return;
         const payload = transformUpdate
           ? transformUpdate(form as Partial<T>)
           : (form as Partial<T>);
         await onUpdate(editing[idKey] as unknown as number, payload);
         toast.success(`${singular} actualizado`);
       } else {
+        if (!onCreate) return;
         const payload = transformCreate
           ? transformCreate(form as Partial<T>)
           : (form as Partial<T>);
@@ -263,7 +270,7 @@ export function ResourcePage<T>({
   };
 
   const confirmDelete = async () => {
-    if (!toDelete) return;
+    if (!toDelete || readOnly || !onDelete) return;
     setSubmitting(true);
     try {
       await onDelete(toDelete[idKey] as unknown as number);
@@ -278,9 +285,10 @@ export function ResourcePage<T>({
 
   const tableColumns = useMemo(() => columns.filter((c) => !c.showOnlyInView), [columns]);
 
-  const canCreate = can("create", module);
-  const canEdit = can("edit", module);
-  const canDelete = can("delete", module);
+  const canCreate = !readOnly && can("create", module);
+  const canEdit = !readOnly && can("edit", module);
+  const canDelete = !readOnly && can("delete", module);
+  const showActionsColumn = !hideView || !!extraActions || canEdit || canDelete;
 
   return (
     <>
@@ -331,20 +339,25 @@ export function ResourcePage<T>({
                       {c.header}
                     </TableHead>
                   ))}
-                  <TableHead className="w-24 text-right">Acciones</TableHead>
+                  {showActionsColumn && (
+                    <TableHead className="w-24 text-right">Acciones</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={tableColumns.length + 1} className="text-center py-10">
+                    <TableCell
+                      colSpan={tableColumns.length + (showActionsColumn ? 1 : 0)}
+                      className="text-center py-10"
+                    >
                       <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={tableColumns.length + 1}
+                      colSpan={tableColumns.length + (showActionsColumn ? 1 : 0)}
                       className="text-center text-sm text-muted-foreground py-10"
                     >
                       Sin registros
@@ -361,42 +374,44 @@ export function ResourcePage<T>({
                           {c.render ? c.render(row) : String(row[c.key as keyof T] ?? "")}
                         </TableCell>
                       ))}
-                      <TableCell className="text-right">
-                        <div className="inline-flex gap-1">
-                          {!hideView && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => setViewing(row)}
-                              aria-label="Ver detalles"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {extraActions?.(row)}
-                          {canEdit && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => openEdit(row)}
-                              aria-label="Editar"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {canDelete && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => setToDelete(row)}
-                              aria-label="Eliminar"
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
+                      {showActionsColumn && (
+                        <TableCell className="text-right">
+                          <div className="inline-flex gap-1">
+                            {!hideView && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setViewing(row)}
+                                aria-label="Ver detalles"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {extraActions?.(row)}
+                            {canEdit && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => openEdit(row)}
+                                aria-label="Editar"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setToDelete(row)}
+                                aria-label="Eliminar"
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}
@@ -435,29 +450,31 @@ export function ResourcePage<T>({
                       </div>
                     ))}
                 </div>
-                <div className="flex items-center justify-end gap-1 pt-3 mt-3 border-t">
-                  {!hideView && (
-                    <Button size="sm" variant="ghost" onClick={() => setViewing(row)}>
-                      <Eye className="h-3.5 w-3.5 mr-1" /> Ver
-                    </Button>
-                  )}
-                  {extraActions?.(row)}
-                  {canEdit && (
-                    <Button size="sm" variant="ghost" onClick={() => openEdit(row)}>
-                      <Edit className="h-3.5 w-3.5 mr-1" /> Editar
-                    </Button>
-                  )}
-                  {canDelete && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setToDelete(row)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar
-                    </Button>
-                  )}
-                </div>
+                {showActionsColumn && (
+                  <div className="flex items-center justify-end gap-1 pt-3 mt-3 border-t">
+                    {!hideView && (
+                      <Button size="sm" variant="ghost" onClick={() => setViewing(row)}>
+                        <Eye className="h-3.5 w-3.5 mr-1" /> Ver
+                      </Button>
+                    )}
+                    {extraActions?.(row)}
+                    {canEdit && (
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(row)}>
+                        <Edit className="h-3.5 w-3.5 mr-1" /> Editar
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setToDelete(row)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Eliminar
+                      </Button>
+                    )}
+                  </div>
+                )}
               </Card>
             ))
           )}
@@ -516,7 +533,8 @@ export function ResourcePage<T>({
         )}
       </main>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      {!readOnly && (
+        <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? `Editar ${singular}` : `Nuevo ${singular}`}</DialogTitle>
@@ -607,9 +625,11 @@ export function ResourcePage<T>({
             </form>
           )}
         </DialogContent>
-      </Dialog>
+        </Dialog>
+      )}
 
-      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+      {!readOnly && (
+        <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar {singular}?</AlertDialogTitle>
@@ -629,18 +649,20 @@ export function ResourcePage<T>({
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+        </AlertDialog>
+      )}
 
       {/* Edit reason dialog (coordinador) */}
-      <Dialog
-        open={editReasonOpen}
-        onOpenChange={(o) => {
-          if (!o) {
-            setEditReasonOpen(false);
-            setPendingEditRow(null);
-          }
-        }}
-      >
+      {!readOnly && (
+        <Dialog
+          open={editReasonOpen}
+          onOpenChange={(o) => {
+            if (!o) {
+              setEditReasonOpen(false);
+              setPendingEditRow(null);
+            }
+          }}
+        >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Motivo de la edición</DialogTitle>
@@ -670,8 +692,9 @@ export function ResourcePage<T>({
               Continuar
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* View details dialog */}
       {!hideView && (

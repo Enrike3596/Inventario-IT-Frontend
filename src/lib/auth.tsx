@@ -134,6 +134,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const can: AuthState["can"] = (action, module) => {
     if (!user) return false;
+    // Movimientos es un historial de solo lectura para todos los roles:
+    // no se puede crear, editar ni eliminar un movimiento.
+    if (module === "movimientos") return action === "view";
     if (user.role === "super_admin") return true;
     if (user.role === "auditor") return action === "view";
     if (user.role === "usuario") return false;

@@ -88,7 +88,9 @@ function Page() {
   return (
     <ResourcePage<Movimiento>
       title="Movimientos"
-      subtitle="Trazabilidad de entradas, salidas y asignaciones"
+      subtitle="Trazabilidad de entradas, salidas y asignaciones (solo lectura)"
+      module="movimientos"
+      readOnly
       data={movimientos ?? []}
       isLoading={isLoading}
       idKey="idHistorial"
@@ -123,7 +125,6 @@ function Page() {
           )}
         </div>
       }
-      defaultValues={{}}
       columns={[
         { header: "Fecha", render: (m) => new Date(m.fechaMovimiento).toLocaleDateString("es-CO") },
         {
@@ -192,33 +193,6 @@ function Page() {
         },
         { header: "Serial", render: (m) => m.serial ?? "—", showOnlyInView: true },
       ]}
-      fields={[
-        {
-          key: "idActivo",
-          label: "Activo",
-          type: "select",
-          required: true,
-          options: (activos ?? []).map((a) => ({
-            value: a.idActivo,
-            label: `${a.serial} — ${a.marca} ${a.modelo}`,
-          })),
-        },
-        {
-          key: "tipoMovimiento",
-          label: "Tipo",
-          type: "select",
-          required: true,
-          options: [
-            { value: "Entrada", label: "Entrada" },
-            { value: "Salida", label: "Salida" },
-            { value: "Asignacion", label: "Asignación" },
-            { value: "Devolucion", label: "Devolución" },
-          ],
-        },
-      ]}
-      onCreate={async () => {}}
-      onUpdate={async () => {}}
-      onDelete={async () => {}}
     />
   );
 }
